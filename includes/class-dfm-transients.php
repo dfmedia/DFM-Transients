@@ -199,6 +199,19 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			if ( false === $data ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->save_to_transient( $data );
+			} elseif ( $this->is_expired( $data ) ) {
+				$this->lock_update();
+				if ( $this->should_soft_expire() ) {
+					new DFM_Async_Handler( $this->transient, $this->modifier );
+				} else {
+					$data = call_user_func( $this->transient_object->callback, $this->modifier );
+					$this->save_to_transient( $data );
+					$this->unlock_update();
+				}
+			}
+
+			if ( $this->should_expire() && $this->should_soft_expire() && is_array( $data ) ) {
+				$data = $data['data'];
 			}
 
 			return $data;
@@ -216,12 +229,12 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			$data = get_metadata( $type, $this->modifier, $this->key, true );
 
-			if ( empty( $data ) ) {
+			if ( false === $data ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->save_to_metadata( $data, $type );
 			} elseif ( $this->is_expired( $data ) ) {
 				$this->lock_update();
-				if ( $this->transient_object->soft_expiration ) {
+				if ( $this->should_soft_expire() ) {
 					new DFM_Async_Handler( $this->transient, $this->modifier );
 				} else {
 					$data = call_user_func( $this->transient_object->callback, $this->modifier );
@@ -247,8 +260,20 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 */
 		private function save_to_transient( $data ) {
 
-			$expires = ( is_int( $this->transient_object->expiration ) ) ? $this->transient_object->expiration : 0;
-			set_transient( $this->key, $data, $expires );
+			$expiration = 0;
+
+			if ( $this->should_expire() ) {
+				$expiration = $this->transient_object->expiration;
+				if ( $this->should_soft_expire() ) {
+					$expiration = YEAR_IN_SECONDS;
+					$data = array(
+						'data' => $data,
+						'expiration' => time() + (int) $this->transient_object->expiration,
+					);
+				}
+			}
+
+			set_transient( $this->key, $data, $expiration );
 
 		}
 
@@ -336,6 +361,16 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 */
 		private function should_expire() {
 			return $this->transient_object->expiration;
+		}
+
+		/**
+		 * Whether or not the transient should expire softly
+		 *
+		 * @return bool
+		 * @access private
+		 */
+		private function should_soft_expire() {
+			return $this->transient_object->soft_expiration;
 		}
 
 		/**

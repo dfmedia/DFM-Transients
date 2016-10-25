@@ -39,16 +39,18 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 				// Store unique identifier to array
 				$this->transient_ids[] = $transient_id;
 
+				$async_update = $transient_args->async_updates;
+
 				// If the transient has update hooks associated with it, build the hook for it to run.
 				if ( false !== $transient_args->update_hooks ) {
 
 					// If there are multiple hooks where this should fire, loop through all of them, and build a hook for each.
 					if ( is_array( $transient_args->update_hooks ) ) {
 						foreach ( $transient_args->update_hooks as $hook_name => $callback ) {
-							new DFM_Transient_Hook( $transient_id, $hook_name, $callback );
+							new DFM_Transient_Hook( $transient_id, $hook_name, $async_update, $callback );
 						}
 					} else {
-						new DFM_Transient_Hook( $transient_id, $transient_args->update_hooks );
+						new DFM_Transient_Hook( $transient_id, $transient_args->update_hooks, $async_update );
 					}
 
 				}
@@ -103,7 +105,9 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 				die();
 			}
 
-			$transient_obj->lock_update();
+			if ( ! $transient_obj->is_locked() ) {
+				$transient_obj->lock_update();
+			}
 
 			global $dfm_transients;
 

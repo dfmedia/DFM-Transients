@@ -102,6 +102,9 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				case 'term_meta':
 					return $this->get_from_meta( 'term' );
 					break;
+				case 'user_meta':
+					return $this->get_from_meta( 'user' );
+					break;
 				default:
 					return new WP_Error( 'invalid-cache-type', __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
 			}
@@ -134,6 +137,9 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 					break;
 				case 'term_meta':
 					$this->save_to_metadata( $data, 'term' );
+					break;
+				case 'user_meta':
+					$this->save_to_metadata( $data, 'user' );
 					break;
 				default:
 					new WP_Error( 'invalid-cache-type', __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
@@ -292,9 +298,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				);
 			}
 
-			if ( 'post' === $type ) {
-				update_post_meta( $this->modifier, $this->key, $data );
-			}
+			update_metadata( $type, $this->modifier, $this->key, $data );
 
 		}
 

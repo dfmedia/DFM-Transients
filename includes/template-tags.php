@@ -13,7 +13,7 @@
  *
  * 		@type string        $key             Name of the key to use for the key => value storage
  * 		@type bool          $hash_key        Whether or not we should hash the key for storage
- * 		@type string        $cache_type      Which storage engine we should use. Options are: transient, post_meta, or term_meta
+ * 		@type string        $cache_type      Which storage engine we should use. Options are: transient, post_meta, user_meta, or term_meta
  * 		@type bool|callable $callback        Provide callback for updating / populating the data to be stored
  * 		@type string        $parent_cache    Name of the parent cache that should also be updated when this cache is updated
  * 		@type bool          $async_updates   Whether or not we should update this cache asynchronously or not
@@ -66,8 +66,8 @@ function dfm_register_transient( $transient, $args = array() ) {
  * Retrieves the data from the transient
  *
  * @param string $transient The name of the transient that we would like to retrieve.
- * @param string|int $modifier The unique modifier for the transient. This is also used for term ID and post ID when
- * 		  the storage engine is post_meta or term_meta
+ * @param string|int $modifier The unique modifier for the transient. This is also used for term ID, post ID, or user ID when
+ * 		  the storage engine is post_meta, term_meta, or user_meta
  *
  * @return mixed|WP_Error|array|string
  */

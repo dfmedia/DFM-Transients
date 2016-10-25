@@ -41,7 +41,6 @@ function dfm_register_transient( $transient, $args = array() ) {
 		'hash_key'        => false,
 		'cache_type'      => 'transient',
 		'callback'        => false,
-		'parent_cache'    => '',
 		'async_updates'   => false,
 		'update_hooks'    => false,
 		'expiration'      => false,

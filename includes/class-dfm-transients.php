@@ -271,7 +271,9 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			if ( $this->should_expire() ) {
 				$expiration = $this->transient_object->expiration;
 				if ( $this->should_soft_expire() ) {
-					$expiration = YEAR_IN_SECONDS;
+					// Set expiration to a year if we aren't using an object cache, so the transient
+					// isn't autoloaded from the database
+					$expiration = ( true === wp_using_ext_object_cache() ) ? 0 : YEAR_IN_SECONDS;
 					$data = array(
 						'data' => $data,
 						'expiration' => time() + (int) $this->transient_object->expiration,

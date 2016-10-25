@@ -81,7 +81,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				// This callback decides if we should actually run the process to update the transient data based on the
 				// args passed to it. The callback should return false if we don't want to run the action, and should
 				// return the transient modifier if we do want to run it.
-				$modifier  = call_user_func( $this->callback, $hook_args );
+				$modifier = call_user_func( $this->callback, $hook_args );
 				if ( false === $modifier ) {
 					return;
 				}

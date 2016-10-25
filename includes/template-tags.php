@@ -5,6 +5,8 @@
  *
  * Handles the registration of the transient
  *
+ * @access public
+ * @return mixed|WP_Error|void
  * @param string $transient
  * @param array $args {
  * 		Optional. Array of arguments to pass when registering.
@@ -34,6 +36,10 @@ function dfm_register_transient( $transient, $args = array() ) {
 
 	if ( ! is_array( $dfm_transients ) ) {
 		$dfm_transients = array();
+	}
+
+	if ( empty( $args['callback'] ) ) {
+		return new WP_Error( 'transient-callback-required', __( 'You must add a callback when registering a transient.', 'dfm-transients' ) );
 	}
 
 	$default_args = array(

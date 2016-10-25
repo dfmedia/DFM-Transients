@@ -19,3 +19,8 @@ require_once( plugin_dir_path( __FILE__ ) . 'includes/class-dfm-transient-hook.p
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-dfm-transient-scheduler.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-dfm-transients.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/template-tags.php' );
+
+// Admin only files
+if ( is_admin() ) {
+	require_once( plugin_dir_path( __FILE__ ) . 'includes/admin/class-dfm-transient-meta-ui.php' );
+}

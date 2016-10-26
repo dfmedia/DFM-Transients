@@ -185,7 +185,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @access public
 		 */
 		public function owns_lock() {
-			if ( $this->lock === $this->lock ) {
+			if ( $this->lock === $this->lock_key ) {
 				return true;
 			} else {
 				return false;

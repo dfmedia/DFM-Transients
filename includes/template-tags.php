@@ -15,7 +15,6 @@
  * 		@type bool          $hash_key        Whether or not we should hash the key for storage
  * 		@type string        $cache_type      Which storage engine we should use. Options are: transient, post_meta, user_meta, or term_meta
  * 		@type bool|callable $callback        Provide callback for updating / populating the data to be stored
- * 		@type string        $parent_cache    Name of the parent cache that should also be updated when this cache is updated
  * 		@type bool          $async_updates   Whether or not we should update this cache asynchronously or not
  * 		@type bool|array    $update_hooks    Name of the hook where the update function should fire {
  *

@@ -22,5 +22,5 @@ require_once( plugin_dir_path( __FILE__ ) . 'includes/template-tags.php' );
 
 // Admin only files
 if ( is_admin() ) {
-	require_once( plugin_dir_path( __FILE__ ) . 'includes/admin/class-dfm-transient-meta-ui.php' );
+	require_once( plugin_dir_path( __FILE__ ) . 'includes/admin/class-dfm-transient-admin.php' );
 }

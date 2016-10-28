@@ -123,7 +123,7 @@ if ( ! class_exists( 'DFM_Transient_Admin' ) ) {
 			add_screen_option( 'per_page', $args );
 
 			// Class must be instantiated here.
-			$this->list_obj = new DFM_Transient_Control_Ui();
+			$this->list_obj = new DFM_Transient_Control_UI();
 
 		}
 
@@ -152,6 +152,6 @@ if ( ! class_exists( 'DFM_Transient_Admin' ) ) {
 		}
 	}
 
-	new DFM_Transient_Admin();
-
 }
+
+new DFM_Transient_Admin();

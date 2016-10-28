@@ -1,7 +1,7 @@
 <?php
 /**
 * Plugin Name: Transient Control
-* Plugin URI: https://wordpress.org/plugins/
+* Plugin URI: https://github.com/dfmedia/DFM-Transients
 * Description: Better control for transients
 * Version: 1.0.0
 * Author: Ryan Kanner, Digital First Media

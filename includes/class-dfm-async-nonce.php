@@ -34,7 +34,7 @@ if ( ! class_exists( 'DFM_Async_Nonce' ) ) {
 		 */
 		function __construct( $transient ) {
 			$this->transient = $transient;
-			$this->action = 'dfm_' . $transient;
+			$this->action = 'dfm_' . $this->transient;
 		}
 
 		/**

@@ -1,11 +1,11 @@
 <?php
 
-if ( ! class_exists( 'DFM_Transient_Meta_Ui' ) ) {
+if ( ! class_exists( 'DFM_Transient_Meta_UI' ) ) {
 	/**
 	 * Class DFM_Transient_Meta_Ui
 	 * Adds UI for tracking transient data that's stored in metadata
 	 */
-	class DFM_Transient_Meta_Ui {
+	class DFM_Transient_Meta_UI {
 
 		/**
 		 * Stores the context of the screen we are on in the admin.
@@ -106,11 +106,11 @@ if ( ! class_exists( 'DFM_Transient_Meta_Ui' ) ) {
 					$data = maybe_unserialize( $transient_value[0] );
 					echo '<tr>';
 						echo '<td>' . esc_html( $transient_key ) . '</td>';
-					if ( is_array( $data ) && array_key_exists( 'data', $data ) && array_key_exists( 'expiration', $data ) ) {
-						echo '<td><textarea cols="50" disabled>'; esc_html( $data['data'] ); echo '</textarea></td>';
+					if ( is_array( $data ) && array_key_exists( 'data', $data ) && ! empty( $data['expiration'] ) ) {
+						echo '<td><textarea cols="50" disabled>' . esc_html( $data['data'] ) . '</textarea></td>';
 						echo '<td>' . esc_html( date( 'm-d-y H:i:s', $data['expiration'] ) ) . '</td>';
 					} else {
-						echo '<td><textarea cols="50" disabled>'; esc_html( $data ); echo '</textarea></td>';
+						echo '<td><textarea cols="50" disabled>' . esc_html( $data ) . '</textarea></td>';
 						echo '<td></td>';
 					}
 					echo '</tr>';
@@ -160,6 +160,6 @@ if ( ! class_exists( 'DFM_Transient_Meta_Ui' ) ) {
 
 	}
 
-	new DFM_Transient_Meta_Ui();
-
 }
+
+new DFM_Transient_Meta_UI();

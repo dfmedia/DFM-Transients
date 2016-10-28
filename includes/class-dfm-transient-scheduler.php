@@ -124,6 +124,6 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 
 	}
 
-	new DFM_Transient_Scheduler();
-
 }
+
+new DFM_Transient_Scheduler();

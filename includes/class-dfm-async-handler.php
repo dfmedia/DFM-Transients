@@ -55,7 +55,7 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 			);
 
 			$url = admin_url( 'admin-post.php' );
-			wp_remote_post( $url, $request_args );
+			wp_safe_remote_post( $url, $request_args );
 
 		}
 

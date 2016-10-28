@@ -52,7 +52,17 @@ function dfm_register_transient( $transient, $args = array() ) {
 		'soft_expiration' => false,
 	);
 
-	$args = wp_parse_args( $args, $default_args );
+	$args = wp_parse_args(
+		/**
+		 * Filters the args for registering a transient
+		 *
+		 * @param array $args The arguments we are trying to register
+		 * @param string $transient The name of the transient we are registering
+		 * @return array $args The args array should be returned
+		 */
+		apply_filters( 'dfm_transients_registration_args', $args, $transient ),
+		$default_args
+	);
 
 	// Type set to object to stay consistent with other WP globally registered objects such as taxonomies.
 	$dfm_transients[ $transient ] = (object) $args;
@@ -71,6 +81,35 @@ function dfm_register_transient( $transient, $args = array() ) {
  * @return mixed|WP_Error|array|string
  */
 function dfm_get_transient( $transient, $modifier ) {
-	$transients = new DFM_Transients( $transient, $modifier );
-	return $transients->get();
+
+	$transients = new DFM_Transients(
+		/**
+		 * Filters the name of the transient to retrieve
+		 *
+		 * @param string $transient The name of the transient we want to retrieve
+		 * @param string $modifier The unique modifier for the transient we want to retrieve
+		 * @return string $transient The transient name should be returned
+		 */
+		apply_filters( 'dfm_transients_get_transient_name', $transient, $modifier ),
+
+		/**
+		 * Filters the unique modifier for the transient
+		 *
+		 * @param string $modifier The unique modifier for the transient we want to retrieve
+		 * @param string $transient The name of the transient we want to retrieve
+		 * @return string $modifier The unique modifier should be returned
+		 */
+		apply_filters( 'dfm_transients_get_transient_modifier', $modifier, $transient )
+	);
+
+	/**
+	 * Filters the data returned
+	 *
+	 * @param mixed|array|object|string|bool $transients the value of the transient being returned
+	 * @param string $transients the name of the transient
+	 * @param string $modifier the unique modifier passed to retrieve the transient data
+	 * @return mixed|array|object|string|bool $transients The value of the transient should be returned again
+	 */
+	return apply_filters( 'dfm_transients_get_result', $transients->get(), $transient, $modifier );
+
 }

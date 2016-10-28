@@ -1,14 +1,10 @@
 <?php
-if ( ! class_exists( 'WP_List_Table' ) ) {
-	// the list table class *needs* to exist at this point, if it isn't for some reason, load it ourselves.
-	require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
-}
 
 /**
  * Class DFM_Transient_Control_Ui
  * Extends the built in list table class to create the custom UI for managing transients
  */
-class DFM_Transient_Control_Ui extends WP_List_Table {
+class DFM_Transient_Control_UI extends WP_List_Table {
 
 	/**
 	 * Stores the raw transients from queries or the cache

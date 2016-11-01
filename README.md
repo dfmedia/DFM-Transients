@@ -88,5 +88,6 @@ Props to the following projects for giving me ideas / code.
 - https://github.com/techcrunch/wp-async-task
 - https://github.com/markjaquith/WP-TLC-Transients
 - https://github.com/pippinsplugins/Transients-Manager
+
 ## License
 This library is licensed under the [MIT](http://opensource.org/licenses/MIT) license. See LICENSE.md for more details.

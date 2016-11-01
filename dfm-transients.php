@@ -5,8 +5,7 @@
 * Description: Better control for transients
 * Version: 1.0.0
 * Author: Ryan Kanner, Digital First Media
-* License: GPL-2.0+
-* License URI: http://www.gnu.org/licenses/gpl-2.0.txt
+* License: MIT
 */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -85,6 +85,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 			$transient_name = empty( $_POST['transient_name'] ) ? false : $_POST['transient_name'];
 			$modifier = empty( $_POST['modifier'] ) ? '' : $_POST['modifier'];
 			$nonce = empty( $_POST['_nonce'] ) ? '' : $_POST['_nonce'];
+			$lock_key = empty( $_POST['lock_key'] ) ? '' : $_POST['lock_key'];
 
 			// Bail if a transient name wasn't passed for some reason
 			if ( empty( $transient_name ) ) {
@@ -101,7 +102,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 			$transient_obj = new DFM_Transients( $transient_name, $modifier );
 
 			// Bail if another process is already trying to update this transient.
-			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock() ) {
+			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( $lock_key ) ) {
 				die();
 			}
 
@@ -109,11 +110,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 				$transient_obj->lock_update();
 			}
 
-			global $dfm_transients;
-
-			$transient = $dfm_transients[ $transient_name ];
-
-			$data = call_user_func( $transient->callback, $modifier );
+			$data = call_user_func( $transient_obj->transient_object->callback, $modifier );
 			$transient_obj->set( $data );
 
 			$transient_obj->unlock_update();

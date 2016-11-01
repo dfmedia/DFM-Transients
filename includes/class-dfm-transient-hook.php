@@ -37,6 +37,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		 *
 		 * @param string $transient
 		 * @param string $hook
+		 * @param bool $async_update
 		 * @param string $callback
 		 */
 		public function __construct( $transient, $hook, $async_update, $callback = '' ) {
@@ -94,7 +95,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				$transient_obj = new DFM_Transients( $this->transient, $modifier );
 
 				// Bail if another process is already trying to update this transient.
-				if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock() ) {
+				if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( '' ) ) {
 					return;
 				}
 
@@ -102,11 +103,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 					$transient_obj->lock_update();
 				}
 
-				global $dfm_transients;
-
-				$transient = $dfm_transients[ $this->transient ];
-
-				$data = call_user_func( $transient->callback, $modifier );
+				$data = call_user_func( $transient_obj->transient_object->callback, $modifier );
 				$transient_obj->set( $data );
 
 				$transient_obj->unlock_update();

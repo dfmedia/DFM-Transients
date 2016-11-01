@@ -28,7 +28,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @var string
 		 * @access public
 		 */
-		private $transient_object;
+		public $transient_object;
 
 		/**
 		 * Unique modifier. In the cases of the post_meta and term_meta storage engine; the post ID or term ID.
@@ -124,10 +124,6 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				return;
 			}
 
-			if ( $this->is_locked() && ! $this->owns_lock() ) {
-				return;
-			}
-
 			switch ( $this->transient_object->cache_type ) {
 				case 'transient':
 					$this->save_to_transient( $data );
@@ -181,11 +177,15 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * Returns true or false if the method that is trying to update the transient owns the lock for it.
 		 *
+		 * @param string $lock_key The key to compare
 		 * @return bool
 		 * @access public
 		 */
-		public function owns_lock() {
-			if ( $this->lock === $this->lock_key ) {
+		public function owns_lock( $lock_key ) {
+			if ( empty( $this->lock ) ) {
+				$this->lock = get_transient( 'dfm_lt_' . $this->key );
+			}
+			if ( $this->lock === $lock_key ) {
 				return true;
 			} else {
 				return false;
@@ -205,10 +205,10 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			if ( false === $data ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->save_to_transient( $data );
-			} elseif ( $this->is_expired( $data ) ) {
+			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
 				$this->lock_update();
 				if ( $this->should_soft_expire() ) {
-					new DFM_Async_Handler( $this->transient, $this->modifier );
+					new DFM_Async_Handler( $this->transient, $this->modifier, $this->lock_key );
 				} else {
 					$data = call_user_func( $this->transient_object->callback, $this->modifier );
 					$this->save_to_transient( $data );
@@ -238,10 +238,10 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			if ( false === $data ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->save_to_metadata( $data, $type );
-			} elseif ( $this->is_expired( $data ) ) {
+			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
 				$this->lock_update();
 				if ( $this->should_soft_expire() ) {
-					new DFM_Async_Handler( $this->transient, $this->modifier );
+					new DFM_Async_Handler( $this->transient, $this->modifier, $this->lock_key );
 				} else {
 					$data = call_user_func( $this->transient_object->callback, $this->modifier );
 					$this->save_to_metadata( $data, $type );

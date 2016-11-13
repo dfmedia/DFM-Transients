@@ -341,7 +341,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				$key = $this->prefix . $key;
 			}
 
-			if ( 'transient' === $this->transient_object->cache_type ) {
+			if ( 'transient' === $this->transient_object->cache_type && ! empty( $this->modifier ) ) {
 				$key = $key . '_' . $this->modifier;
 			}
 

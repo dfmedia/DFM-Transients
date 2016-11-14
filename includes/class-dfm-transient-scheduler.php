@@ -34,6 +34,11 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 
 			global $dfm_transients;
 
+			// Bail if there are no transients registered.
+			if ( empty( $dfm_transients ) || ! is_array( $dfm_transients ) ) {
+				return;
+			}
+
 			foreach ( $dfm_transients as $transient_id => $transient_args ) {
 
 				// Store unique identifier to array

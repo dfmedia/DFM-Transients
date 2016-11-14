@@ -141,11 +141,11 @@ class DFM_Transient_Control_UI extends WP_List_Table {
 
 		if ( empty( $this->raw_transient_results ) ) {
 			global $wp_object_cache;
-			$raw_keys = $wp_object_cache->cache['wp_:options:alloptions'];
+			$raw_keys = $wp_object_cache->cache;
 			$transients = array();
 			if ( ! empty( $raw_keys ) && is_array( $raw_keys ) ) {
 				foreach ( $raw_keys as $transient_name => $value ) {
-					if ( '_transient_' === substr( $transient_name, 0, 11 ) ) {
+					if ( 'wp_:transient' === substr( $transient_name, 0, 13 ) ) {
 						$transients[] = array( 'option_name' => $transient_name, 'option_value' => $value );
 					}
 				}

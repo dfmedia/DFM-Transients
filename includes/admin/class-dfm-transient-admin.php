@@ -40,6 +40,7 @@ if ( ! class_exists( 'DFM_Transient_Admin' ) ) {
 			$this->load_dependencies();
 			add_action( 'init', array( $this, 'setup' ) );
 			add_action( 'admin_menu', array( $this, 'add_menu' ) );
+			add_filter( 'set-screen-option', array( $this, 'transient_set_option' ), 20, 3 );
 		}
 
 		/**
@@ -125,6 +126,23 @@ if ( ! class_exists( 'DFM_Transient_Admin' ) ) {
 			// Class must be instantiated here.
 			$this->list_obj = new DFM_Transient_Control_UI();
 
+		}
+
+		/**
+		 * Handles saving of transients per page option
+		 *
+		 * @param bool|int $status screen option value. Default false to skip.
+		 * @param string $option The option name.
+		 * @param $value The number of rows to use.
+		 *
+		 * @return mixed
+		 * @access public
+		 */
+		public function transient_set_option( $status, $option, $value ) {
+			if ( 'transients_per_page' === $option ) {
+				return $value;
+			}
+			return $status;
 		}
 
 		/**

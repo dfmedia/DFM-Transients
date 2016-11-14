@@ -188,7 +188,7 @@ class DFM_Transient_Control_UI extends WP_List_Table {
 					LIKE '%\_transient\_%' 
 					AND option_name 
 					NOT LIKE '%\_transient\_timeout%'
-				" 
+				"
 			);
 		}
 
@@ -253,7 +253,8 @@ class DFM_Transient_Control_UI extends WP_List_Table {
 			case 'option_name':
 				return '<strong>' . $item[ $column_name ] . '</strong>';
 			case 'option_value':
-				return '<textarea rows="5" cols="100" disabled>' . esc_html( $item[ $column_name ] ) . '</textarea>';
+				// @todo: move inline styles to stylesheet once we have more than one admin style.
+				return '<textarea style="max-width: 100%" rows="5" cols="100" disabled>' . esc_html( $item[ $column_name ] ) . '</textarea>';
 			default:
 				return esc_html( $item[ $column_name ] );
 		}

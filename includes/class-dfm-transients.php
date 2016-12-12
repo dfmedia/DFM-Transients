@@ -124,6 +124,10 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				return;
 			}
 
+			if ( false === $data || is_wp_error( $data ) ) {
+				return;
+			}
+
 			switch ( $this->transient_object->cache_type ) {
 				case 'transient':
 					$this->save_to_transient( $data );
@@ -204,19 +208,19 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			if ( false === $data ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
-				$this->save_to_transient( $data );
+				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
 				$this->lock_update();
 				if ( $this->should_soft_expire() ) {
 					new DFM_Async_Handler( $this->transient, $this->modifier, $this->lock_key );
 				} else {
 					$data = call_user_func( $this->transient_object->callback, $this->modifier );
-					$this->save_to_transient( $data );
+					$this->set( $data );
 					$this->unlock_update();
 				}
 			}
 
-			if ( $this->should_expire() && $this->should_soft_expire() && is_array( $data ) ) {
+			if ( $this->should_expire() && $this->should_soft_expire() && is_array( $data ) && array_key_exists( 'data', $data ) ) {
 				$data = $data['data'];
 			}
 
@@ -237,19 +241,19 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			if ( false === $data ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
-				$this->save_to_metadata( $data, $type );
+				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
 				$this->lock_update();
 				if ( $this->should_soft_expire() ) {
 					new DFM_Async_Handler( $this->transient, $this->modifier, $this->lock_key );
 				} else {
 					$data = call_user_func( $this->transient_object->callback, $this->modifier );
-					$this->save_to_metadata( $data, $type );
+					$this->set( $data );
 					$this->unlock_update();
 				}
 			}
 
-			if ( $this->should_expire() && is_array( $data ) ) {
+			if ( $this->should_expire() && is_array( $data ) && array_key_exists( 'data', $data ) ) {
 				$data = $data['data'];
 			}
 

@@ -238,8 +238,14 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		private function get_from_meta( $type ) {
 
 			$data = get_metadata( $type, $this->modifier, $this->key, true );
+			
+			$data_exists = true;
+			
+			if ( empty( $data ) ) {
+				$data_exists = metadata_exists( $type, $this->modifier, $this->key );
+			}
 
-			if ( false === $data || empty( $data ) ) {
+			if ( false === $data_exists ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {

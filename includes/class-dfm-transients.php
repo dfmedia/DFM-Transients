@@ -206,7 +206,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			$data = get_transient( $this->key );
 
-			if ( false === $data ) {
+			if ( false === $data || ( defined( 'DFM_TRANSIENTS_HOT_RELOAD' ) && true === DFM_TRANSIENTS_HOT_RELOAD ) ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
@@ -245,7 +245,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				$data_exists = metadata_exists( $type, $this->modifier, $this->key );
 			}
 
-			if ( false === $data_exists ) {
+			if ( false === $data_exists || ( defined( 'DFM_TRANSIENTS_HOT_RELOAD' ) && true === DFM_TRANSIENTS_HOT_RELOAD ) ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {

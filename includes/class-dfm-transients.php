@@ -257,7 +257,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			}
 
 			if ( false === $data_exists ) {
-				if ( $this->doing_retry ) {
+				if ( true === $this->doing_retry ) {
 					return false;
 				}
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );

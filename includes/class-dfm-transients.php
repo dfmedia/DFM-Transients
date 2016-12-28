@@ -341,12 +341,17 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				$key = $this->hash_key( $key );
 			}
 
-			if ( 'post_meta' === $this->transient_object->cache_type || 'term_meta' === $this->transient_object->cache_type ) {
-				$key = $this->prefix . $key;
-			}
-
-			if ( 'transient' === $this->transient_object->cache_type && ! empty( $this->modifier ) ) {
-				$key = $key . '_' . $this->modifier;
+			switch( $this->transient_object->cache_type ) {
+				case 'post_meta':
+				case 'term_meta':
+				case 'user_meta':
+					$key = $this->prefix . $key;
+					break;
+				case 'transient':
+					if ( ! empty( $this->modifier ) ) {
+						$key = $key . '_' . $this->modifier;
+					}
+					break;
 			}
 
 			return $key;

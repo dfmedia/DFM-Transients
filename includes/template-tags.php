@@ -80,7 +80,7 @@ function dfm_register_transient( $transient, $args = array() ) {
  *
  * @return mixed|WP_Error|array|string
  */
-function dfm_get_transient( $transient, $modifier ) {
+function dfm_get_transient( $transient, $modifier = '' ) {
 
 	$transients = new DFM_Transients(
 		/**
@@ -111,5 +111,85 @@ function dfm_get_transient( $transient, $modifier ) {
 	 * @return mixed|array|object|string|bool $transients The value of the transient should be returned again
 	 */
 	return apply_filters( 'dfm_transients_get_result', $transients->get(), $transient, $modifier );
+
+}
+
+/**
+ * dfm_set_transient
+ *
+ * Handles the setting of data to a particular transient
+ *
+ * @param string 	 $transient The name of the transient we would like to set data to
+ * @param string 	 $data 		The data we want to set to the transient
+ * @param string|int $modifier  The unique modifier for the transient. In the case of transients stored in metadata,
+ * 								this value should be the object ID related to this piece of metadata.
+ */
+function dfm_set_transient( $transient, $data, $modifier = '' ) {
+
+	$transients = new DFM_Transients(
+
+		/**
+		 * Filters the name of the transient to set
+		 *
+		 * @param string $transient The name of the transient
+		 * @param string $modifier The unique modifier
+		 * @param mixed $data The data you want to save to your transient
+		 * @return string $transient The name of the transient to set data to
+		 */
+		apply_filters( 'dfm_transients_set_transient_name', $transient, $modifier, $data ),
+
+		/**
+		 * Filters the unique modifier for the transient
+		 *
+		 * @param string $modifier The unique modifier
+		 * @param string $transient The name of the transient we want to save data to
+		 * @param mixed $data The data that we want to save to the transient
+		 * @return string $modifier The unique modifier for the transient
+		 */
+		apply_filters( 'dfm_transients_set_transient_modifier', $modifier, $transient, $data )
+	);
+
+	// Invoke the set method
+	$transients->set( $data );
+
+}
+
+/**
+ * dfm_delete_transient
+ *
+ * Handles the deletion of a single transient
+ *
+ * @param string 	 $transient Name of the transient you want to delete. Must match what is set when registering
+ * 							    the transient.
+ * @param string|int $modifier Unique modifier for the transient that you want to delete. In the case of a transient stored
+ * 							   in metadata it must be the object ID that the metadata is related to.
+ * @return void
+ * @access public
+ */
+function dfm_delete_transient( $transient, $modifier = '' ) {
+
+	$transients = new DFM_Transients(
+
+		/**
+		 * Filters the name of the transient to delete
+		 *
+		 * @param string $transient Name of the transient
+		 * @param string $modifier The unique modifier for the transient you want to delete
+		 * @return string $transient Name of the transient to be deleted
+		 */
+		apply_filters( 'dfm_transients_delete_transient_name', $transient, $modifier ),
+
+		/**
+		 * Filters the modifier of the transient to delete
+		 *
+		 * @param string $modifier Unique modifier for the transient you want to delete
+		 * @param string $transient Name of the transient to be deleted
+		 * @return string $modifier Unique modifier for the transient to be deleted
+		 */
+		apply_filters( 'dfm_transients_delete_transient_modifier', $modifier, $transient )
+	);
+
+	// Invoke the delete method
+	$transients->delete();
 
 }

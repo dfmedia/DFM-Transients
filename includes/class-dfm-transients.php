@@ -148,7 +148,10 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		}
 
 		/**
-		 * @return WP_Error|null
+		 * This method handles the deletion of a transient
+		 * 
+		 * @return WP_Error|void
+		 * @access public
 		 */
 		public function delete() {
 
@@ -342,10 +345,25 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 		}
 
+		/**
+		 * Deletes a transient stored in the default transient storage engine
+		 * 
+		 * @access private
+		 * @uses delete_transient()
+		 * @return void
+		 */
 		private function delete_from_transient() {
 			delete_transient( $this->key );
 		}
 
+		/**
+		 * Deletes a transient stored in metadata
+		 * 
+		 * @param string $type The object type related to the metadata
+		 * @uses delete_metadata()
+		 * @return void
+		 * @access private
+		 */
 		private function delete_from_metadata( $type ) {
 			delete_metadata( $type, $this->modifier, $this->key );
 		}

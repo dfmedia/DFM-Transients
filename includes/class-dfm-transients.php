@@ -238,8 +238,14 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		private function get_from_meta( $type ) {
 
 			$data = get_metadata( $type, $this->modifier, $this->key, true );
+			
+			$data_exists = true;
+			
+			if ( empty( $data ) ) {
+				$data_exists = metadata_exists( $type, $this->modifier, $this->key );
+			}
 
-			if ( false === $data || empty( $data ) ) {
+			if ( false === $data_exists ) {
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
@@ -390,12 +396,17 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				$key = $this->hash_key( $key );
 			}
 
-			if ( 'post_meta' === $this->transient_object->cache_type || 'term_meta' === $this->transient_object->cache_type ) {
-				$key = $this->prefix . $key;
-			}
-
-			if ( 'transient' === $this->transient_object->cache_type && ! empty( $this->modifier ) ) {
-				$key = $key . '_' . $this->modifier;
+			switch( $this->transient_object->cache_type ) {
+				case 'post_meta':
+				case 'term_meta':
+				case 'user_meta':
+					$key = $this->prefix . $key;
+					break;
+				case 'transient':
+					if ( ! empty( $this->modifier ) ) {
+						$key = $key . '_' . $this->modifier;
+					}
+					break;
 			}
 
 			return $key;

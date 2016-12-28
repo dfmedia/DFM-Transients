@@ -63,6 +63,14 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		private $lock_key = '';
 
 		/**
+		 * Flag for if we are attempting a retry
+		 *
+		 * @var $doing_retry bool
+		 * @access private
+		 */
+		private $doing_retry = false;
+
+		/**
 		 * DFM_Transients constructor.
 		 *
 		 * @param string $transient
@@ -207,6 +215,9 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			$data = get_transient( $this->key );
 
 			if ( false === $data ) {
+				if ( true === $this->doing_retry ) {
+					return false;
+				}
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
@@ -246,6 +257,9 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			}
 
 			if ( false === $data_exists ) {
+				if ( $this->doing_retry ) {
+					return false;
+				}
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
@@ -324,9 +338,13 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 */
 		private function facilitate_retry() {
 
+			// Set flag while doing a retry to prevent infinite loops.
+			$this->doing_retry = true;
+
 			// Retrieve the stale data.
 			$current_data = $this->get();
 
+			// If there is nothing already stored for the transient, bail.
 			if ( false === $current_data ) {
 				return;
 			}

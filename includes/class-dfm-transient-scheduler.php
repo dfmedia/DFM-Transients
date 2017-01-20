@@ -21,7 +21,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 		 */
 		function __construct() {
 			// Adds a high priority to make sure all of the transients have been registered.
-			add_action( 'after_setup_theme', array( $this, 'get_transients' ), 9999 );
+			add_action( 'wp_loaded', array( $this, 'get_transients' ), 9999 );
 		}
 
 		/**

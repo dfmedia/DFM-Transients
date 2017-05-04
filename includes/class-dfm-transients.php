@@ -148,6 +148,37 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		}
 
 		/**
+		 * This method handles the deletion of a transient
+		 * 
+		 * @return WP_Error|void
+		 * @access public
+		 */
+		public function delete() {
+
+			if ( ! isset( $this->transient_object ) ) {
+				return new WP_Error( 'invalid-transient', __( 'You are trying to retrieve a transient that doesn\'t exist', 'dfm-transients' ) );
+			}
+
+			switch( $this->transient_object->cache_type ) {
+				case 'transient':
+					$this->delete_from_transient();
+					break;
+				case 'post_meta':
+					$this->delete_from_metadata( 'post' );
+					break;
+				case 'term_meta':
+					$this->delete_from_metadata( 'term' );
+					break;
+				case 'user_meta':
+					$this->delete_from_metadata( 'user' );
+					break;
+				default:
+					new WP_Error( 'invalid-cache-type', __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
+			}
+
+		}
+
+		/**
 		 * Locks the ability to update the transient data. This will prevent race conditions.
 		 *
 		 * @return void
@@ -312,6 +343,29 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			update_metadata( $type, $this->modifier, $this->key, $data );
 
+		}
+
+		/**
+		 * Deletes a transient stored in the default transient storage engine
+		 * 
+		 * @access private
+		 * @uses delete_transient()
+		 * @return void
+		 */
+		private function delete_from_transient() {
+			delete_transient( $this->key );
+		}
+
+		/**
+		 * Deletes a transient stored in metadata
+		 * 
+		 * @param string $type The object type related to the metadata
+		 * @uses delete_metadata()
+		 * @return void
+		 * @access private
+		 */
+		private function delete_from_metadata( $type ) {
+			delete_metadata( $type, $this->modifier, $this->key );
 		}
 
 		/**

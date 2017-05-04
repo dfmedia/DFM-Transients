@@ -157,7 +157,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 		/**
 		 * This method handles the deletion of a transient
-		 * 
+		 *
 		 * @return WP_Error|void
 		 * @access public
 		 */
@@ -524,7 +524,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @return bool
 		 */
 		private function is_expired( $data ) {
-			if ( '' !== $this->transient_object->expiration && is_array( $data ) && $data['expiration'] < time() ) {
+			if ( ! empty( $this->transient_object->expiration ) && is_array( $data ) && $data['expiration'] < time() ) {
 				return true;
 			} else {
 				return false;

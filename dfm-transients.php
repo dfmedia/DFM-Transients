@@ -23,3 +23,8 @@ require_once( plugin_dir_path( __FILE__ ) . 'includes/template-tags.php' );
 if ( is_admin() ) {
 	require_once( plugin_dir_path( __FILE__ ) . 'includes/admin/class-dfm-transient-admin.php' );
 }
+
+// CLI Commands
+if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
+	require_once( plugin_dir_path( __FILE__ ) . 'includes/cli.php' );
+}

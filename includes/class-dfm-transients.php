@@ -36,7 +36,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @var string
 		 * @access private
 		 */
-		private $modifier = '';
+		public $modifier = '';
 
 		/**
 		 * The storage key for the transient
@@ -44,7 +44,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @var string
 		 * @access private
 		 */
-		private $key = '';
+		public $key = '';
 
 		/**
 		 * Lock stored in transient.

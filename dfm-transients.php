@@ -3,7 +3,7 @@
 * Plugin Name: Transient Control
 * Plugin URI: https://github.com/dfmedia/DFM-Transients
 * Description: Better control for transients
-* Version: 1.0.1
+* Version: 1.1.0
 * Author: Ryan Kanner, Digital First Media
 * License: MIT
 */
@@ -22,4 +22,9 @@ require_once( plugin_dir_path( __FILE__ ) . 'includes/template-tags.php' );
 // Admin only files
 if ( is_admin() ) {
 	require_once( plugin_dir_path( __FILE__ ) . 'includes/admin/class-dfm-transient-admin.php' );
+}
+
+// CLI Commands
+if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
+	require_once( plugin_dir_path( __FILE__ ) . 'includes/cli.php' );
 }

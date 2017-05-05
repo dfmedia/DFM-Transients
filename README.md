@@ -79,6 +79,13 @@ $result = dfm_get_transient( 'sample_transient', '' );
 
 ## Transient Modifier
 The transient modifier, (second parameter passed to the `dfm_get_transient` function) is used in a variety of different ways throughout this library. For a transient stored in metadata, it will be used as the object ID the transient is attached to. It will be used when using the `get_metadata()` and `save_metadata()` functions, so it is crucial that it is passed for transients stored in metadata. For global transients, it can be used to store variations of the same type of transient. It will append the `$modifier` to the end of the transient key. This way you could store and retrieve different variations of the same transient that are mostly the same without registering a whole new transient. You can use the modifier to change the data saved to the transient by using it to alter your logic in your callback (the modifier is passed as the only argument to your callback function).
+
+## Debugging
+To help with debugging, you can set a constant in your codebase called `DFM_TRANSIENTS_HOT_RELOAD` and set it to `true` to enable "hot reload" mode. This will essentially make it so that transient data will be regenerated every time it is called. This is handy if you are working on adding a transient, and want it to keep regenerating while you are working on it. This saves the need from manually deleting it from your database, or setting an extremely short timeout. **NOTE:** This constant should only ever be used on a development environment. Using this on production could cause serious performance issues depending on the data you are storing in your transients.
+
+## Retries
+Since version 1.1.0 there is a retry facilitation system for DFM Transients. This is helpful if you are storing data from an external API, and want to serve stale data if the API is down. To use this feature, all you have to do is return `false` or a `wp_error` object in your transient callback if your remote request failed. This will then store the stale expired data back into the transient, and will use an expiration timeout that increases exponentially every time it fails to fetch the data. Essentially it stores a `failed` value in the cache for each transient, and adds one to the value every time the retry method runs. It then mulitplies this number by its self to figure out how many minutes it should set the expiration to. For example, if the fetch has failed 5 times, it will set the timeout to 25 minutes, and will retry again after that.
+
 ## Contributing
 To contribute to this repo, please fork it and submit a pull request. If there is a larger feature you would like to see, or something you would like to discuss, please open an issue.
 ## Copyright

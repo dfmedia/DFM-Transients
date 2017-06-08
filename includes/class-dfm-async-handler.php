@@ -41,8 +41,8 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 		function __construct( $transient, $modifier, $lock_key = '' ) {
 
 			$this->transient_name = $transient;
-			$this->modifier = $modifier;
-			$this->lock_key = $lock_key;
+			$this->modifier       = $modifier;
+			$this->lock_key       = $lock_key;
 			// Spawn the event on shutdown so we are less likely to run into timeouts, or block other processes
 			add_action( 'shutdown', array( $this, 'spawn_event' ) );
 

@@ -73,18 +73,18 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * DFM_Transients constructor.
 		 *
-		 * @param string $transient
-		 * @param string|int $modifier
+		 * @param string $transient Name of the transient
+		 * @param string|int $modifier Unique modifier for the transient
 		 */
 		function __construct( $transient, $modifier ) {
 
 			global $dfm_transients;
-			$this->transient = $transient;
-			$this->modifier = $modifier;
+			$this->transient        = $transient;
+			$this->modifier         = $modifier;
 			$this->transient_object = $dfm_transients[ $this->transient ];
-			$this->key = $this->cache_key();
-			$this->lock_key = uniqid( 'dfm_lt_' );
-			$this->prefix = apply_filters( 'dfm_transient_prefix', 'dfm_transient_' );
+			$this->key              = $this->cache_key();
+			$this->lock_key         = uniqid( 'dfm_lt_' );
+			$this->prefix           = apply_filters( 'dfm_transient_prefix', 'dfm_transient_' );
 
 		}
 
@@ -122,14 +122,14 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * This method handles storing transient data to the database or object cache
 		 *
-		 * @param string|array $data
+		 * @param string|array $data The data to add to the transient
 		 * @access public
+		 * @return WP_Error|void
 		 */
 		public function set( $data ) {
 
 			if ( ! isset( $this->transient_object ) ) {
-				new WP_Error( 'invalid-transient', __( 'You are trying to set data to a transient that doesn\'t exist', 'dfm-transients' ) );
-				return;
+				return new WP_Error( 'invalid-transient', __( 'You are trying to set data to a transient that doesn\'t exist', 'dfm-transients' ) );
 			}
 
 			if ( false === $data || is_wp_error( $data ) ) {
@@ -225,14 +225,17 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @access public
 		 */
 		public function owns_lock( $lock_key ) {
+
 			if ( empty( $this->lock ) ) {
 				$this->lock = get_transient( 'dfm_lt_' . $this->key );
 			}
+
 			if ( $this->lock === $lock_key ) {
 				return true;
 			} else {
 				return false;
 			}
+
 		}
 
 		/**
@@ -274,16 +277,16 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * Handles retrieving data from post_meta or term_meta
 		 *
-		 * @param string $type
+		 * @param string $type The object type the meta is attached to
 		 * @return mixed string|array
 		 * @access private
 		 */
 		private function get_from_meta( $type ) {
 
 			$data = get_metadata( $type, $this->modifier, $this->key, true );
-			
+
 			$data_exists = true;
-			
+
 			if ( empty( $data ) ) {
 				$data_exists = metadata_exists( $type, $this->modifier, $this->key );
 			}
@@ -317,7 +320,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * Handles saving of data for a transient storage type
 		 *
-		 * @param string|array $data
+		 * @param string|array $data The data to save to the transient
 		 * @return void
 		 * @access private
 		 */
@@ -331,8 +334,8 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 					// Set expiration to a year if we aren't using an object cache, so the transient
 					// isn't autoloaded from the database
 					$expiration = ( true === wp_using_ext_object_cache() ) ? 0 : YEAR_IN_SECONDS;
-					$data = array(
-						'data' => $data,
+					$data       = array(
+						'data'       => $data,
 						'expiration' => time() + (int) $this->transient_object->expiration,
 					);
 				}
@@ -345,14 +348,17 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * Handles saving data for meta storage engine
 		 *
-		 * @param string|array $data
-		 * @param string $type
+		 * @param string|array $data The data to save
+		 * @param string       $type The object type the meta is connected to
+		 *
+		 * @access private
+		 * @return void
 		 */
 		private function save_to_metadata( $data, $type ) {
 
 			if ( $this->should_expire() ) {
 				$data = array(
-					'data' => $data,
+					'data'       => $data,
 					'expiration' => time() + (int) $this->transient_object->expiration,
 				);
 			}
@@ -440,7 +446,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * Hashes storage key
 		 *
-		 * @param string $key
+		 * @param string $key Name of the key to hash
 		 * @return string
 		 * @access private
 		 */
@@ -470,7 +476,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				$key = $this->hash_key( $key );
 			}
 
-			switch( $this->transient_object->cache_type ) {
+			switch ( $this->transient_object->cache_type ) {
 				case 'post_meta':
 				case 'term_meta':
 				case 'user_meta':
@@ -520,7 +526,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * Whether or not the transient data has expired
 		 *
-		 * @param array|string $data
+		 * @param array|string $data The data to check if it's expired
 		 * @return bool
 		 */
 		private function is_expired( $data ) {

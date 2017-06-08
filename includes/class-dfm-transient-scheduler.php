@@ -1,6 +1,7 @@
 <?php
 
-if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
+if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
+
 	/**
 	 * Class DFM_Transient_Scheduler
 	 * Attaches hooks to run incoming post requests.
@@ -87,10 +88,10 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 		 */
 		public function run_update() {
 
-			$transient_name = empty( $_POST['transient_name'] ) ? false : $_POST['transient_name'];
-			$modifier = empty( $_POST['modifier'] ) ? '' : $_POST['modifier'];
-			$nonce = empty( $_POST['_nonce'] ) ? '' : $_POST['_nonce'];
-			$lock_key = empty( $_POST['lock_key'] ) ? '' : $_POST['lock_key'];
+			$transient_name = empty( $_POST['transient_name'] ) ? false : sanitize_text_field( $_POST['transient_name'] );
+			$modifier       = empty( $_POST['modifier'] ) ? '' : sanitize_text_field( $_POST['modifier'] );
+			$nonce          = empty( $_POST['_nonce'] ) ? '' : sanitize_text_field( $_POST['_nonce'] );
+			$lock_key       = empty( $_POST['lock_key'] ) ? '' : sanitize_text_field( $_POST['lock_key'] );
 
 			// Bail if a transient name wasn't passed for some reason
 			if ( empty( $transient_name ) ) {
@@ -126,6 +127,6 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) {
 
 	}
 
-}
+endif;
 
 new DFM_Transient_Scheduler();

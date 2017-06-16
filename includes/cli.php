@@ -38,6 +38,32 @@ if ( class_exists( 'WP_CLI' ) ) {
 		 * [--fields]
 		 * : The fields you would like to return
 		 *
+		 * ## EXAMPLES
+		 *
+		 *     $wp dfm-transients get dfm_current_standout_count
+		 *     +----------+------+
+		 *     | modifier | data |
+		 *     +----------+------+
+		 *     |          | 0    |
+		 *     +----------+------+
+		 *
+		 *     $wp dfm-transients get term_posts all
+		 *     +----------+------------------------------------------------------------------------------------------------------------------+
+		 *     | modifier | data                                                                                                             |
+		 *     +----------+------------------------------------------------------------------------------------------------------------------+
+		 *     | 7681     | [2187069,2189051,2188653,2188525,2188689,2188302,2188435,2188561,2188519,2188486,2188180,2188052,2188378,2187293 |
+		 *     |          | ,2187831,2185712,2186525,2186643,2186373,2186221]                                                                |
+		 *     | 4687     | [2188121,2187831,2187084,2185789,2185208,2185126,2185123,2185003,2183357,2183326,2183276,2183089,2183081,2183060 |
+		 *     |          | ,2182991,2181531,2180932,2180486,2177749,2179168]                                                                |
+		 *     | 1797     | [2186592,2177875,2170239,2162981,2155404,2148740]                                                                |
+		 *     | 8732     | [2188653,2185461,2183384,2182193,2178326,2175819,2174603,2170396,2168493,2167170,2163516,2160893,2158586,2156073 |
+		 *     |          | ,2154094,2151996,2149292,2147779,2147211,2147178]                                                                |
+		 *     | 8624     | [2181074,2173277,2157496,2149817,2138319]                                                                        |
+		 *     +----------+------------------------------------------------------------------------------------------------------------------+
+		 *
+		 *     $wp dfm-transients get term_posts all --fields=modifier --format=ids
+		 *     97 7681 4687 1797 8732 8624 98 9372 7682 48 94 75 66 30 15 7629 40 53 59 36
+		 *
 		 * ## AVAILABLE FIELDS
 		 * * modifier
 		 * * data
@@ -121,11 +147,20 @@ if ( class_exists( 'WP_CLI' ) ) {
 		 * <transient_name>
 		 * : Name of the transient you would like to set data for
 		 *
-		 * <modifiers>...
+		 * [<modifiers>...]
 		 * : List of modifiers you want to update the transient data for
 		 *
 		 * [--data=<data>]
 		 * : The new data you want to store in the transient
+		 *
+		 * ## EXAMPLES
+		 *
+		 *     $wp dfm-transients set my_transient --data="test"
+		 *     Successfully updated the my_transient transient
+		 *
+		 *     $wp dfm-transients set term_posts $(wp dfm-transients get term_posts --fields=modifier --format=ids) --data="test"
+		 *     Updating Transients  100% [=============================================] 0:00 / 0:00
+		 *     Success: Successfully updated 20 transients
 		 *
 		 * @param $args
 		 * @param $assoc_args
@@ -174,8 +209,17 @@ if ( class_exists( 'WP_CLI' ) ) {
 		 * <transient_name>
 		 * : Name of the transient you would like to delete data for
 		 *
-		 * <modifiers>...
+		 * [<modifiers>...]
 		 * : List of modifiers you want to delete the transients for
+		 *
+		 * ## EXAMPLES
+		 *
+		 *     $wp dfm-transients delete my_transient
+		 *     Success: Successfully deleted transient: my_transient
+		 *
+		 *     $wp dfm-transients delete term_posts $(wp dfm-transients get term_posts --fields=modifier --format=ids)
+		 *     Deleting transients  100% [=============================================] 0:00 / 0:00
+		 *     Success: Successfully deleted 20 transients
 		 *
 		 * @param array $args
 		 * @param array $assoc_args
@@ -256,6 +300,36 @@ if ( class_exists( 'WP_CLI' ) ) {
 		 *
 		 * [--<field>=<value>]
 		 * : One or more fields to filter the list with
+		 *
+		 * ## EXAMPLES
+		 *
+		 *     $ wp dfm-transients list
+		 *     +----------------------------+----------+------------+---------------+------------+-----------------+
+		 *     | key                        | hash_key | cache_type | async_updates | expiration | soft_expiration |
+		 *     +----------------------------+----------+------------+---------------+------------+-----------------+
+		 *     | dfm_instagram_api_feed     |          | transient  |               | 3600       | 1               |
+		 *     | dfm_current_standout_count |          | transient  |               | 3600       | 1               |
+		 *     | author_featured_articles   |          | post_meta  | 1             |            |                 |
+		 *     | nav_menu                   |          | transient  | 1             |            |                 |
+		 *     +----------------------------+----------+------------+---------------+------------+-----------------+
+		 *
+		 *     $ wp dfm-transients list dfm_current_standout_count author_featured_articles --fields=key,cache_type,async_updates
+		 *     +----------------------------+------------+---------------+
+		 *     | key                        | cache_type | async_updates |
+		 *     +----------------------------+------------+---------------+
+		 *     | dfm_current_standout_count | transient  |               |
+		 *     | author_featured_articles   | post_meta  | 1             |
+		 *     +----------------------------+------------+---------------+
+		 *
+		 *     $wp dfm-transients list --async_updates=1 --fields=key,cache_type,async_updates
+		 *     +--------------------------+------------+---------------+
+		 *     | key                      | cache_type | async_updates |
+		 *     +--------------------------+------------+---------------+
+		 *     | author_featured_articles | post_meta  | 1             |
+		 *     | nav_menu                 | transient  | 1             |
+		 *     | author_list_query        | transient  | 1             |
+		 *     | term_posts               | term_meta  | 1             |
+		 *     +--------------------------+------------+---------------+
 		 *
 		 * @param $args
 		 * @param $assoc_args

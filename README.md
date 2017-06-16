@@ -86,6 +86,91 @@ To help with debugging, you can set a constant in your codebase called `DFM_TRAN
 ## Retries
 Since version 1.1.0 there is a retry facilitation system for DFM Transients. This is helpful if you are storing data from an external API, and want to serve stale data if the API is down. To use this feature, all you have to do is return `false` or a `wp_error` object in your transient callback if your remote request failed. This will then store the stale expired data back into the transient, and will use an expiration timeout that increases exponentially every time it fails to fetch the data. Essentially it stores a `failed` value in the cache for each transient, and adds one to the value every time the retry method runs. It then mulitplies this number by its self to figure out how many minutes it should set the expiration to. For example, if the fetch has failed 5 times, it will set the timeout to 25 minutes, and will retry again after that.
 
+## CLI Commands
+DFM Transients comes with a full list of CLI commands to control transients from the command line. Below are a few sample commands to get you started.
+
+List all registered transients:
+```bash
+$ wp dfm-transients list
+
++----------------------------+----------+------------+---------------+------------+-----------------+
+| key                        | hash_key | cache_type | async_updates | expiration | soft_expiration |
++----------------------------+----------+------------+---------------+------------+-----------------+
+| dfm_instagram_api_feed     |          | transient  |               | 3600       | 1               |
+| dfm_current_standout_count |          | transient  |               | 3600       | 1               |
+| author_featured_articles   |          | post_meta  | 1             |            |                 |
+| nav_menu                   |          | transient  | 1             |            |                 |
++----------------------------+----------+------------+---------------+------------+-----------------+
+```
+You can also get a list of information on just a few registered transients, and return only the info you need with the `--fields` flag
+```bash
+$ wp dfm-transients list dfm_current_standout_count author_featured_articles --fields=key,cache_type,async_updates
+
++----------------------------+------------+---------------+
+| key                        | cache_type | async_updates |
++----------------------------+------------+---------------+
+| dfm_current_standout_count | transient  |               |
+| author_featured_articles   | post_meta  | 1             |
++----------------------------+------------+---------------+
+```
+If you want a list of registered transients that all use async_updated you can run something like the following:
+```bash
+$wp dfm-transients list --async_updates=1 --fields=key,cache_type,async_updates
+
++--------------------------+------------+---------------+
+| key                      | cache_type | async_updates |
++--------------------------+------------+---------------+
+| author_featured_articles | post_meta  | 1             |
+| nav_menu                 | transient  | 1             |
+| author_list_query        | transient  | 1             |
+| term_posts               | term_meta  | 1             |
++--------------------------+------------+---------------+
+```
+You can also retrieve the data from your transients from the command line:
+```bash
+$wp dfm-transients get term_posts all
+
++----------+------------------------------------------------------------------------------------------------------------------+
+| modifier | data                                                                                                             |
++----------+------------------------------------------------------------------------------------------------------------------+
+| 7681     | [2187069,2189051,2188653,2188525,2188689,2188302,2188435,2188561,2188519,2188486,2188180,2188052,2188378,2187293 |
+|          | ,2187831,2185712,2186525,2186643,2186373,2186221]                                                                |
+| 4687     | [2188121,2187831,2187084,2185789,2185208,2185126,2185123,2185003,2183357,2183326,2183276,2183089,2183081,2183060 |
+|          | ,2182991,2181531,2180932,2180486,2177749,2179168]                                                                |
+| 1797     | [2186592,2177875,2170239,2162981,2155404,2148740]                                                                |
+| 8732     | [2188653,2185461,2183384,2182193,2178326,2175819,2174603,2170396,2168493,2167170,2163516,2160893,2158586,2156073 |
+|          | ,2154094,2151996,2149292,2147779,2147211,2147178]                                                                |
++----------+------------------------------------------------------------------------------------------------------------------+
+```
+You can also retrieve only the modifiers for the transients, which becomes useful with the delete and set commands
+```bash
+$wp dfm-transients get term_posts all --fields=modifier --format=ids
+
+97 7681 4687 1797 8732 8624 98 9372 7682 48 94 75 66 30 15 7629 40 53 59 36
+```
+For modifying the data stored in a transient, you can use the `set` command like so:
+```bash
+$wp dfm-transients set my_transient --data="test"
+Successfully updated the my_transient transient
+```
+You can also combine this with the `get` command to update multiple transients within a group at once
+```bash
+$wp dfm-transients set term_posts $(wp dfm-transients get term_posts --fields=modifier --format=ids) --data="test"
+Updating Transients  100% [=============================================] 0:00 / 0:00
+Success: Successfully updated 20 transients
+```
+Similar to the `set` command, you can use the `delete` command to delete the record for the transient. This is useful for when you want to force the system to regenerate the data stored in a particular transient.
+```bash
+$wp dfm-transients delete my_transient
+Success: Successfully deleted transient: my_transient
+```
+You can also combine this command with the `get` command to delete multiple transients at the same time
+```bash
+$wp dfm-transients delete term_posts $(wp dfm-transients get term_posts --fields=modifier --format=ids)
+Deleting transients  100% [=============================================] 0:00 / 0:00
+Success: Successfully deleted 20 transients
+```
+
 ## Contributing
 To contribute to this repo, please fork it and submit a pull request. If there is a larger feature you would like to see, or something you would like to discuss, please open an issue.
 ## Copyright

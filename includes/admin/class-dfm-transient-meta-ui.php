@@ -98,23 +98,32 @@ if ( ! class_exists( 'DFM_Transient_Meta_UI' ) ) {
 
 				echo '<table class="widefat striped">';
 				echo '<thead>';
-					echo '<td>' . esc_html__( 'Transient Key', 'dfm-transients' ) . '</td>';
-					echo '<td>' . esc_html__( 'Value', 'dfm-transients' ) . '</td>';
-					echo '<td>' . esc_html__( 'Expiration', 'dfm-transients' ) . '</td>';
+				echo '<td>' . esc_html__( 'Transient Key', 'dfm-transients' ) . '</td>';
+				echo '<td>' . esc_html__( 'Value', 'dfm-transients' ) . '</td>';
+				echo '<td>' . esc_html__( 'Expiration', 'dfm-transients' ) . '</td>';
 				echo '</thead>';
 				foreach ( $transients as $transient_key => $transient_value ) {
-					$data = maybe_unserialize( $transient_value[0] );
-					echo '<tr>';
-						echo '<td>' . esc_html( $transient_key ) . '</td>';
-					if ( is_array( $data ) && array_key_exists( 'data', $data ) && ! empty( $data['expiration'] ) ) {
-						echo '<td><textarea cols="50" disabled>' . esc_html( $data['data'] ) . '</textarea></td>';
-						echo '<td>' . esc_html( date( 'm-d-y H:i:s', $data['expiration'] ) ) . '</td>';
+
+					$transient_value = maybe_unserialize( $transient_value[0] );
+
+					if ( array_key_exists( 'data', $transient_value ) ) {
+						$data       = $transient_value['data'];
+						$expiration = date( 'm-d-y H:i:s', $transient_value['expiration'] );
 					} else {
-						echo '<td><textarea cols="50" disabled>' . esc_html( $data ) . '</textarea></td>';
-						echo '<td></td>';
+						$data       = $transient_value;
+						$expiration = '';
 					}
+
+					$data = var_export( $data, true );
+
+					echo '<tr>';
+					echo '<td>' . esc_html( $transient_key ) . '</td>';
+					echo '<td><textarea cols="50" disabled>' . esc_html( $data ) . '</textarea></td>';
+					echo '<td>' . esc_html( $expiration ) . '</td>';
 					echo '</tr>';
+
 				}
+
 				echo '</table>';
 
 			}

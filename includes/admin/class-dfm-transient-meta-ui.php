@@ -118,7 +118,7 @@ if ( ! class_exists( 'DFM_Transient_Meta_UI' ) ) {
 
 					echo '<tr>';
 					echo '<td>' . esc_html( $transient_key ) . '</td>';
-					echo '<td><textarea cols="50" disabled>' . esc_html( $data ) . '</textarea></td>';
+					echo '<td><textarea cols="50" disabled>' . esc_textarea( $data ) . '</textarea></td>';
 					echo '<td>' . esc_html( $expiration ) . '</td>';
 					echo '</tr>';
 

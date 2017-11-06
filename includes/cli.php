@@ -246,6 +246,8 @@ if ( class_exists( 'WP_CLI' ) ) {
 
 					foreach ( $modifiers as $modifier ) {
 
+						WP_CLI::log( $transient_name . ' ' . $modifier );
+
 						dfm_delete_transient( $transient_name, $modifier );
 
 						if ( isset( $progress ) ) {
@@ -414,7 +416,7 @@ if ( class_exists( 'WP_CLI' ) ) {
 
 			if ( ! empty( $assoc_args['fields'] ) ) {
 				if ( is_string( $assoc_args['fields'] ) ) {
-					$fields = explode( ',', $assoc_args );
+					$fields = explode( ',', $assoc_args['fields'] );
 				} else {
 					$fields = $assoc_args['fields'];
 				}

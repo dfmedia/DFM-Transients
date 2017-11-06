@@ -246,8 +246,6 @@ if ( class_exists( 'WP_CLI' ) ) {
 
 					foreach ( $modifiers as $modifier ) {
 
-						WP_CLI::log( $transient_name . ' ' . $modifier );
-
 						dfm_delete_transient( $transient_name, $modifier );
 
 						if ( isset( $progress ) ) {

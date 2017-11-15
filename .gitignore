@@ -13,3 +13,4 @@ node_modules
 *.zip
 wp-cli.local.yml
 Thumbs.db
+coverage/

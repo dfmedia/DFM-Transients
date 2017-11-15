@@ -28,6 +28,7 @@
  * 		@type string        $expiration      Unix timestamp of when the data should expire
  * 		@type bool          $soft_expiration Whether or not we should do a soft expiration on the data
  * }
+ * @throws exception
  */
 function dfm_register_transient( $transient, $args = array() ) {
 
@@ -38,7 +39,7 @@ function dfm_register_transient( $transient, $args = array() ) {
 	}
 
 	if ( empty( $args['callback'] ) ) {
-		return new WP_Error( 'transient-callback-required', __( 'You must add a callback when registering a transient.', 'dfm-transients' ) );
+		throw new Exception( __( 'You must add a callback when registering a transient', 'dfm-transients' ) );
 	}
 
 	$default_args = array(

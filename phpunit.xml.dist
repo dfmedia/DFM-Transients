@@ -11,4 +11,10 @@
 			<directory prefix="test-" suffix=".php">./tests/</directory>
 		</testsuite>
 	</testsuites>
+	<filter>
+		<whitelist processUncoveredFilesFromWhitelist="true">
+			<file>./dfm-transients.php</file>
+			<directory suffix=".php">./includes/</directory>
+		</whitelist>
+	</filter>
 </phpunit>

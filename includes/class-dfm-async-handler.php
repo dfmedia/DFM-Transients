@@ -48,10 +48,16 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 
 		}
 
+		/**
+		 * Sends off a request to process and update the transient data asynchronously
+		 *
+		 * @return array|void|WP_Error
+		 * @access public
+		 */
 		public function spawn_event() {
 
 			// Prevents infinite loops if we are debugging transients in the init hook, or another hook that would run
-			// when handling the asyc post data
+			// when handling the async post data
 			$is_async_action = ( isset( $_POST['async_action'] ) ) ? true : false;
 
 			if ( true === $is_async_action ) {
@@ -75,7 +81,7 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 			);
 
 			$url = admin_url( 'admin-post.php' );
-			wp_safe_remote_post( $url, $request_args );
+			return wp_safe_remote_post( $url, $request_args );
 
 		}
 

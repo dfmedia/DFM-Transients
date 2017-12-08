@@ -91,7 +91,6 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			global $dfm_transients;
 
 			if ( empty( $dfm_transients[ $transient ] ) ) {
-				//return new WP_Error( 'invalid-transient', __( 'You are trying to retrieve a transient that doesn\'t exist', 'dfm-transients' ) );
 				throw new Exception( __( 'You are trying to retrieve a transient that doesn\'t exist', 'dfm-transient' ) );
 			}
 
@@ -136,16 +135,14 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 *
 		 * @param string|array $data The data to add to the transient
 		 * @access public
-		 * @return WP_Error|void
+		 * @return void
+		 * @throws Exception
 		 */
 		public function set( $data ) {
 
-			if ( ! isset( $this->transient_object ) ) {
-				return new WP_Error( 'invalid-transient', __( 'You are trying to set data to a transient that doesn\'t exist', 'dfm-transients' ) );
-			}
-
 			if ( false === $data || is_wp_error( $data ) ) {
 				$this->facilitate_retry();
+				return;
 			}
 
 			switch ( $this->transient_object->cache_type ) {
@@ -162,7 +159,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 					$this->save_to_metadata( $data, 'user' );
 					break;
 				default:
-					new WP_Error( 'invalid-cache-type', __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
+					throw new Exception( __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
 			}
 
 		}
@@ -170,16 +167,13 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * This method handles the deletion of a transient
 		 *
-		 * @return WP_Error|void
+		 * @return void
 		 * @access public
+		 * @throws Exception
 		 */
 		public function delete() {
 
-			if ( ! isset( $this->transient_object ) ) {
-				return new WP_Error( 'invalid-transient', __( 'You are trying to retrieve a transient that doesn\'t exist', 'dfm-transients' ) );
-			}
-
-			switch( $this->transient_object->cache_type ) {
+			switch ( $this->transient_object->cache_type ) {
 				case 'transient':
 					$this->delete_from_transient();
 					break;
@@ -193,7 +187,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 					$this->delete_from_metadata( 'user' );
 					break;
 				default:
-					new WP_Error( 'invalid-cache-type', __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
+					throw new Exception( __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
 			}
 
 		}
@@ -260,29 +254,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			$data = get_transient( $this->key );
 
-			if ( false === $data || ( defined( 'DFM_TRANSIENTS_HOT_RELOAD' ) && true === DFM_TRANSIENTS_HOT_RELOAD ) ) {
-
-				if ( true === $this->doing_retry ) {
-					return false;
-				}
-				$data = call_user_func( $this->transient_object->callback, $this->modifier );
-				$this->set( $data );
-			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
-				$this->lock_update();
-				if ( $this->should_soft_expire() ) {
-					new DFM_Async_Handler( $this->transient, $this->modifier, $this->lock_key );
-				} else {
-					$data = call_user_func( $this->transient_object->callback, $this->modifier );
-					$this->set( $data );
-					$this->unlock_update();
-				}
-			}
-
-			if ( $this->should_expire() && $this->should_soft_expire() && is_array( $data ) && array_key_exists( 'data', $data ) ) {
-				$data = $data['data'];
-			}
-
-			return $data;
+			return $this->get_transient_data( $data );
 
 		}
 
@@ -297,15 +269,27 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			$data = get_metadata( $type, $this->modifier, $this->key, true );
 
-			$data_exists = true;
-
 			if ( empty( $data ) ) {
 				$data_exists = metadata_exists( $type, $this->modifier, $this->key );
+				$data = ( false === $data_exists ) ? false : $data;
 			}
 
-			if ( false === $data_exists || ( defined( 'DFM_TRANSIENTS_HOT_RELOAD' ) && true === DFM_TRANSIENTS_HOT_RELOAD ) ) {
+			return $this->get_transient_data( $data );
 
-				if ( true === $this->doing_retry ) {
+		}
+
+		/**
+		 * Handles the low level retrieval and rehydrating of data if necessary for all cache types
+		 *
+		 * @param mixed $data The data beind returned from the get_transient or get_metadata functions
+		 * @return bool|mixed
+		 * @access private
+		 */
+		private function get_transient_data( $data ) {
+
+			if ( false === $data || ( defined( 'DFM_TRANSIENTS_HOT_RELOAD' ) && true === DFM_TRANSIENTS_HOT_RELOAD ) ) {
+
+				if ( true === $this->doing_retry() ) {
 					return false;
 				}
 				$data = call_user_func( $this->transient_object->callback, $this->modifier );
@@ -434,24 +418,24 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			if ( false === $failed_num || 0 === $failed_num ) {
 				$failures = 1;
 			} else {
-				$failures = $failed_num;
+				$failures = $failed_num + 1;
 			}
 
-			// Generate the new expiration time. This essentially just muliplies the amount of failures by itself, and
+			// Generate the new expiration time. This essentially just multiplies the amount of failures by itself, and
 			// then multiplies it by one minute to get the expiration, so if it is retrying it for the 5th time, it will
 			// do 5*5 (which is 25) so it will set the retry to 25 minutes.
 			$new_expiration = ( pow( $failures, 2 ) * MINUTE_IN_SECONDS );
 
 			// Only set the new expiration if it's less than the original registered expiration.
 			if ( $new_expiration < $max_expiration ) {
-				$this->transient_object->expiration = $new_expiration;
+				$this->transient_object->expiration = absint( $new_expiration );
 			}
 
 			// Save the stale data with the new expiration
 			$this->set( $current_data );
 
 			// Add 1 to the the failures in the cache.
-			wp_cache_set( $this->key . '_failed', ( $failures + 1 ), 'dfm_transients_retry', DAY_IN_SECONDS );
+			wp_cache_set( $this->key . '_failed', $failures, 'dfm_transients_retry', DAY_IN_SECONDS );
 
 		}
 
@@ -540,17 +524,24 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * Whether or not the transient data has expired
 		 *
 		 * @param array|string $data The data to check if it's expired
+		 * @access private
 		 * @return bool
 		 */
-		private function is_expired( $data ) {
+		protected function is_expired( $data ) {
 			if ( ! empty( $this->transient_object->expiration ) && is_array( $data ) && $data['expiration'] < time() ) {
-				$r = true;
-			} else {
-				$r = false;
+				return true;
 			}
+			return false;
+		}
 
-			return apply_filters( 'dfm_transient_is_expired', $r, $data, $this->transient_object );
-
+		/**
+		 * Whether or not a retry is occurring
+		 *
+		 * @access private
+		 * @return bool
+		 */
+		private function doing_retry() {
+			return (bool) $this->doing_retry;
 		}
 
 	}

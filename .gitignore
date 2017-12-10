@@ -8,3 +8,9 @@ node_modules
 .project
 .settings
 .idea/*
+*.sql
+*.tar.gz
+*.zip
+wp-cli.local.yml
+Thumbs.db
+coverage/

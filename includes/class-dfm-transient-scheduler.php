@@ -95,21 +95,21 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 			// Bail if a transient name wasn't passed for some reason
 			if ( empty( $transient_name ) ) {
-				die();
+				return;
 			}
 
 			$verify_nonce = new DFM_Async_Nonce( $transient_name );
 
 			// Bail if we couldn't verify the nonce as legit
 			if ( false === $verify_nonce->verify( $nonce ) ) {
-				die();
+				return;
 			}
 
 			$transient_obj = new DFM_Transients( $transient_name, $modifier );
 
 			// Bail if another process is already trying to update this transient.
 			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( $lock_key ) ) {
-				die();
+				return;
 			}
 
 			if ( ! $transient_obj->is_locked() ) {
@@ -120,8 +120,6 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 			$transient_obj->set( $data );
 
 			$transient_obj->unlock_update();
-
-			die();
 
 		}
 

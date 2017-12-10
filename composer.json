@@ -3,5 +3,5 @@
   "type": "wordpress-plugin",
   "description": "Get better control over your transients",
   "homepage": "https://github.com/dfmedia/DFM-Transients",
-  "license": "MIT"
+  "license": "GPLv3"
 }

@@ -94,7 +94,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 *
 		 * @throws Exception
 		 */
-		function __construct( $transient, $modifier, $object_id ) {
+		function __construct( $transient, $modifier, $object_id = null ) {
 
 			global $dfm_transients;
 
@@ -106,17 +106,21 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			$this->modifier         = $modifier;
 			$this->object_id        = $object_id;
 			$this->transient_object = $dfm_transients[ $this->transient ];
-			$this->key              = $this->cache_key();
 			$this->lock_key         = uniqid( 'dfm_lt_' );
-			$this->prefix           = apply_filters( 'dfm_transient_prefix', 'dfm_transient_' );
+			$this->prefix           = apply_filters( 'dfm_transient_prefix', 'dfm_transient_', $this->transient, $this->modifier, $this->object_id );
 
 			/**
-			 * For backwards compatibility, use the modifier value as the object ID.
+			 * For backwards compatibility, use the modifier value as the object ID if no ID is supplied, but it's an object type cache.
 			 */
 			if ( 'transient' !== $this->transient_object->cache_type && empty( $object_id ) ) {
 				$this->object_id = absint( $modifier );
 				$this->modifier = '';
 			}
+
+			/**
+			 * Generate the cache key after we've applied the backward compat fix above ^
+			 */
+			$this->key = $this->cache_key();
 
 		}
 
@@ -314,9 +318,9 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
 				$this->lock_update();
 				if ( $this->should_soft_expire() ) {
-					new DFM_Async_Handler( $this->transient, $this->modifier, $this->lock_key );
+					new DFM_Async_Handler( $this->transient, $this->modifier, $this->object_id, $this->lock_key );
 				} else {
-					$data = call_user_func( $this->transient_object->callback, $this->modifier );
+					$data = call_user_func( $this->transient_object->callback, $this->modifier, $this->object_id );
 					$this->set( $data );
 					$this->unlock_update();
 				}

@@ -35,13 +35,17 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 		 * DFM_Async_Handler constructor.
 		 *
 		 * @param string $transient Name of the transient
-		 * @param string $modifier Unique modifier for the transient
-		 * @param string $lock_key Key for matching the update locking
+		 * @param string $modifier  Unique modifier for the transient
+		 * @param int    $object_id ID of the object where the transient data is stored
+		 * @param string $lock_key  Key for matching the update locking
+		 *
+		 * @return void
 		 */
-		function __construct( $transient, $modifier, $lock_key = '' ) {
+		function __construct( $transient, $modifier, $object_id = 0, $lock_key = '' ) {
 
 			$this->transient_name = $transient;
 			$this->modifier       = $modifier;
+			$this->object_id      = $object_id;
 			$this->lock_key       = $lock_key;
 			// Spawn the event on shutdown so we are less likely to run into timeouts, or block other processes
 			add_action( 'shutdown', array( $this, 'spawn_event' ) );
@@ -73,6 +77,7 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 				'body'     => array(
 					'transient_name' => $this->transient_name,
 					'modifier'       => $this->modifier,
+					'object_id'      => $this->object_id,
 					'action'         => 'dfm_' . $this->transient_name,
 					'_nonce'         => $nonce,
 					'async_action'   => true,

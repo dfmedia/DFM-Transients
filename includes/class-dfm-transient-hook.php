@@ -70,9 +70,9 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		 * @return void
 		 * @access private
 		 */
-		private function run_update( $modifier ) {
+		private function run_update( $modifier, $object_id = null ) {
 
-			$transient_obj = new DFM_Transients( $this->transient, $modifier );
+			$transient_obj = new DFM_Transients( $this->transient, $modifier, $object_id );
 
 			// Bail if another process is already trying to update this transient.
 			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( '' ) ) {
@@ -83,7 +83,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				$transient_obj->lock_update();
 			}
 
-			$data = call_user_func( $transient_obj->transient_object->callback, $modifier );
+			$data = call_user_func( $transient_obj->transient_object->callback, $modifier, $object_id );
 			$transient_obj->set( $data );
 
 			$transient_obj->unlock_update();
@@ -122,6 +122,11 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				// If we have an array of modifiers, update each of them.
 				if ( is_array( $modifiers ) ) {
 					foreach ( $modifiers as $modifier ) {
+						if ( is_array( $modifier ) ) {
+							foreach ( $modifier as $object_id => $key_modifier ) {
+								new DFM_Async_Handler( $this->transient, $modifier, $object_id );
+							}
+						}
 						new DFM_Async_Handler( $this->transient, $modifier );
 					}
 				} else {
@@ -134,6 +139,11 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				// If we have an array of modifiers, update each of them.
 				if ( is_array( $modifiers ) ) {
 					foreach ( $modifiers as $modifier ) {
+						if ( is_array( $modifier ) ) {
+							foreach ( $modifier as $object_id => $key_modifier ) {
+								$this->run_update( $modifier, $object_id );
+							}
+						}
 						$this->run_update( $modifier );
 					}
 				} else {

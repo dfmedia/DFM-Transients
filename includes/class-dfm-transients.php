@@ -434,6 +434,15 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 			delete_metadata( $type, $this->object_id, $this->key );
 		}
 
+		/**
+		 * Add the transient keys to the mapping so they can be found easily later
+		 *
+		 * @param string $type          The type of meta to store the map in
+		 * @param string $transient_key The key for the transient group to create the map key off of
+		 *
+		 * @return void
+		 * @access private
+		 */
 		private function add_meta_map( $type, $transient_key ) {
 
 			$map = get_metadata( $type, $this->object_id, self::meta_map_key( $transient_key ), true );
@@ -447,19 +456,41 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 		}
 
+		/**
+		 * Return a map of meta keys for all of the modifiers for a transient registered in the group
+		 *
+		 * @param string $type          The meta type to use for storage
+		 * @param int    $object_id     The ID of the object to store the meta map in
+		 * @param string $transient_key Key for the transient group the transient belongs to
+		 *
+		 * @return array
+		 * @access public
+		 * @static
+		 */
 		public static function get_meta_map( $type, $object_id, $transient_key ) {
 
 			if ( is_wp_error( $type ) ) {
-				return;
+				return array();
 			}
 
 			$map = get_metadata( $type, $object_id, self::meta_map_key( $transient_key ), true );
 			if ( empty( $map ) ) {
 				$map = [];
 			}
+
 			return $map;
+
 		}
 
+		/**
+		 * Return the meta map key for the transient group
+		 *
+		 * @param string $transient_key Transient key for the transient group
+		 *
+		 * @return string
+		 * @access public
+		 * @static
+		 */
 		public static function meta_map_key( $transient_key ) {
 			return self::$prefix . $transient_key . '_map';
 		}

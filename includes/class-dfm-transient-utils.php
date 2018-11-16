@@ -1,8 +1,20 @@
 <?php
 
 if ( ! class_exists( 'DFM_Transient_Utils' ) ) {
+
+	/**
+	 * Class DFM_Transient_Utils
+	 * Helper methods for the DFM_Transients plugin
+	 */
 	class DFM_Transient_Utils {
 
+		/**
+		 * Return the *_metadata() cache type translated from the registered `cache_type`.
+		 *
+		 * @param string $cache_type Name of the cache type to translate to the friendlier version
+		 *
+		 * @return string|WP_Error
+		 */
 		public static function get_meta_type( $cache_type ) {
 
 			switch ( $cache_type ) {

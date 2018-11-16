@@ -238,6 +238,10 @@ class Test_Class_DFM_Transient_Hook extends WP_UnitTestCase {
 
 	}
 
+	/**
+	 * Test that all the transients on a user type cache are cleared only when the modifiers for the
+	 * object ID are passed back in the callback, or if it returns an empty array for the ID.
+	 */
 	public function testUserObjectCacheHandlerWithModifiers() {
 
 		$transient_name = 'testUserObjectCacheHandlerWithModifiers';
@@ -302,6 +306,7 @@ class Test_Class_DFM_Transient_Hook extends WP_UnitTestCase {
 			}
 		}
 
+		// Test to make sure the "test" modifier on the second to last user isn't updated since we didn't pass it to the hook in the $hook_data var
 		$this->assertEquals( 'test', get_user_meta( $users[2], $transient_keys[ $users[2] ]['test'], true ) );
 
 	}

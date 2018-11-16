@@ -141,6 +141,19 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				}
 			}
 
+			/**
+			 * Sample return formats from the callback
+			 *
+			 * - True/False: If you return false, it won't update anything, if you return true it will continue with the update process
+			 * - 20: Return an int of the object ID to update the transient value for a specific object when the object cache type is being used. If you have transients using modifiers on this object all modifiers will be updated
+			 * - 'blue': Return the string name of the transient modifier you would like to update. This only works for transients using the "transient" storage engine, since it needs the context of the object ID for object type caches
+			 * - [ 10, 20, 30 ]: Return an array of object ID's to update transients on those specific object ID's
+			 * - [
+			 *      10 => [ 'blue', 'yellow', 'green' ]   Update transients with the modifiers blue, yellow, and green in the object ID: 10
+			 *      20 => [ 'blue', 'green' ]             Update transients with the modifiers blue, and green in the object ID: 20
+			 *      30 => []                              Update all transients within the group on object ID: 30
+			 * ]
+			 */
 			if ( is_array( $modifiers ) && ! empty( $modifiers ) ) {
 				foreach ( $modifiers as $key => $modifier ) {
 					if ( is_array( $modifier ) && ! empty( $modifier ) ) {
@@ -157,6 +170,14 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 
 		}
 
+		/**
+		 * Retrieve data from the hook callback and process it for updating
+		 *
+		 * @param mixed|string|int|bool $modifier  The data passed back from the callback
+		 * @param null                  $object_id ID of the object an update needs to be performed for
+		 *
+		 * @access private
+		 */
 		private function dispatch_update( $modifier, $object_id = null ) {
 
 			if ( 'transient' !== $this->transient_obj->cache_type ) {

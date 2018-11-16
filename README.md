@@ -58,9 +58,12 @@ dfm_transient_meta_update_cb( $args ) {
 }
 ```
 ## Retrieve the transient data
-You can use the `dfm_get_transient()` function to retrieve the data for a transient. The first parameter passed to this function is the name of the transient you are trying to retrieve (should be the same name that you registered the transient with). The second parameter is the "modifier" for the transient. You can read more about modifiers below.
+You can use the `dfm_get_transient()` function to retrieve the data for a transient. The first parameter passed to this function is the name of the transient you are trying to retrieve (should be the same name that you registered the transient with). The second parameter is the "modifier" for the transient. You can read more about modifiers below. The third parameter is the object_id (if you are using post_meta, term_meta, or user_meta as the cache type).
 ```php
-$result = dfm_get_transient( 'sample_transient', '' );
+$result = dfm_get_transient( 'sample_transient' );
+```
+```php
+$post_transient = dfm_get_transient( 'sample_transient', '', $post_id );
 ```
 
 ## Arguments for registering a transient
@@ -78,6 +81,8 @@ $result = dfm_get_transient( 'sample_transient', '' );
 8. **soft_expiration** (bool) - Whether or not the data should soft expire or not. If this is set to true, it will check to see if the data has expired when retrieving it. If it is expired, it will spawn a background process to update the transient data. *Default: False*
 
 ## Transient Modifier
+The Transient modifier (second parameter passed to the `dfm_get_transient` function) is used to store variations of the same type of transient. It will append the $modifier to the end of the transient key. This way you could store and retrieve different variations of the same transient that are mostly the same without registering a whole new transient. You can use the modifier to change the data saved to the transient by using it to alter your logic in your callback (the modifier is passed as the first argument to your callback function).
+
 The transient modifier, (second parameter passed to the `dfm_get_transient` function) is used in a variety of different ways throughout this library. For a transient stored in metadata, it will be used as the object ID the transient is attached to. It will be used when using the `get_metadata()` and `save_metadata()` functions, so it is crucial that it is passed for transients stored in metadata. For global transients, it can be used to store variations of the same type of transient. It will append the `$modifier` to the end of the transient key. This way you could store and retrieve different variations of the same transient that are mostly the same without registering a whole new transient. You can use the modifier to change the data saved to the transient by using it to alter your logic in your callback (the modifier is passed as the only argument to your callback function).
 
 ## Debugging

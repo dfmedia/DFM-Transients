@@ -14,7 +14,15 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		 * @var string
 		 * @access private
 		 */
-		private $transient;
+		private $transient_name;
+
+		/**
+		 * The settings registered to the transient
+		 *
+		 * @var object $transient_obj
+		 * @access private
+		 */
+		private $transient_obj;
 
 		/**
 		 * Name of hook we want to hook into
@@ -33,19 +41,30 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		private $callback;
 
 		/**
+		 * Whether or not the update should happen asynchronously
+		 *
+		 * @var bool $async
+		 * @access private
+		 *
+		 */
+		private $async = false;
+
+		/**
 		 * DFM_Transient_Hook constructor.
 		 *
-		 * @param string $transient
-		 * @param string $hook
-		 * @param bool $async_update
-		 * @param string $callback
+		 * @param string $transient_name Name of the transient to add the hook callback for
+		 * @param object $transient_obj  Settings that were added when the transient was registered
+		 * @param string $hook           Name of the hook
+		 * @param bool   $async_update   Whether or not the update should happen asynchronously or not
+		 * @param string $callback       The callable method to be added to the hook
 		 */
-		public function __construct( $transient, $hook, $async_update, $callback = '' ) {
+		public function __construct( $transient_name, $transient_obj, $hook, $async_update, $callback = '' ) {
 
-			$this->transient = $transient;
-			$this->hook      = $hook;
-			$this->callback  = $callback;
-			$this->async     = $async_update;
+			$this->transient_name = $transient_name;
+			$this->transient_obj  = $transient_obj;
+			$this->hook           = $hook;
+			$this->callback       = $callback;
+			$this->async          = $async_update;
 
 			$this->add_hook( $hook );
 
@@ -72,7 +91,12 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		 */
 		private function run_update( $modifier, $object_id = null ) {
 
-			$transient_obj = new DFM_Transients( $this->transient, $modifier, $object_id );
+			if ( $this->async ) {
+				new DFM_Async_Handler( $this->transient_name, $modifier, $object_id );
+				return;
+			}
+
+			$transient_obj = new DFM_Transients( $this->transient_name, $modifier, $object_id );
 
 			// Bail if another process is already trying to update this transient.
 			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( '' ) ) {
@@ -84,6 +108,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 			}
 
 			$data = call_user_func( $transient_obj->transient_object->callback, $modifier, $object_id );
+
 			$transient_obj->set( $data );
 
 			$transient_obj->unlock_update();
@@ -116,40 +141,45 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				}
 			}
 
-			// If we are running an async task, instantiate a new async handler.
-			if ( $this->async ) {
-
-				// If we have an array of modifiers, update each of them.
-				if ( is_array( $modifiers ) ) {
-					foreach ( $modifiers as $modifier ) {
-						if ( is_array( $modifier ) ) {
-							foreach ( $modifier as $object_id => $key_modifier ) {
-								new DFM_Async_Handler( $this->transient, $modifier, $object_id );
-							}
+			if ( is_array( $modifiers ) && ! empty( $modifiers ) ) {
+				foreach ( $modifiers as $key => $modifier ) {
+					if ( is_array( $modifier ) && ! empty( $modifier ) ) {
+						foreach ( $modifier as $key_modifier ) {
+							$this->dispatch_update( $key_modifier, $key );
 						}
-						new DFM_Async_Handler( $this->transient, $modifier );
+					} else {
+						$this->dispatch_update( $modifier, $key );
 					}
-				} else {
-					new DFM_Async_Handler( $this->transient, $modifiers );
 				}
-
-			// Run the update in real time if we aren't using an async process
 			} else {
+				$this->dispatch_update( $modifiers );
+			}
 
-				// If we have an array of modifiers, update each of them.
-				if ( is_array( $modifiers ) ) {
-					foreach ( $modifiers as $modifier ) {
-						if ( is_array( $modifier ) ) {
-							foreach ( $modifier as $object_id => $key_modifier ) {
-								$this->run_update( $modifier, $object_id );
-							}
-						}
-						$this->run_update( $modifier );
-					}
-				} else {
-					$this->run_update( $modifiers );
+		}
+
+		private function dispatch_update( $modifier, $object_id = null ) {
+
+			if ( 'transient' !== $this->transient_obj->cache_type ) {
+
+				if ( empty( $object_id ) ) {
+					$object_id = absint( $modifier );
+					$translated_obj_id = true;
 				}
 
+				if ( empty( $modifier ) || isset( $translated_obj_id ) ) {
+					$modifier_map = DFM_Transients::get_meta_map( DFM_Transient_Utils::get_meta_type( $this->transient_obj->cache_type ), $object_id, $this->transient_obj->key );
+					if ( ! empty( $modifier_map ) && is_array( $modifier_map ) ) {
+						foreach ( $modifier_map as $modifier => $modifier_key ) {
+							$this->run_update( $modifier, $object_id );
+						}
+					} else {
+						$this->run_update( '', $object_id );
+					}
+				} else {
+					$this->run_update( $modifier, $object_id );
+				}
+			} else {
+				$this->run_update( $modifier );
 			}
 
 		}

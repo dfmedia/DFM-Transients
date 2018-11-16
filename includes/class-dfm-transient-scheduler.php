@@ -53,10 +53,10 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 					// If there are multiple hooks where this should fire, loop through all of them, and build a hook for each.
 					if ( is_array( $transient_args->update_hooks ) ) {
 						foreach ( $transient_args->update_hooks as $hook_name => $callback ) {
-							new DFM_Transient_Hook( $transient_id, $hook_name, $async_update, $callback );
+							new DFM_Transient_Hook( $transient_id, $transient_args, $hook_name, $async_update, $callback );
 						}
 					} else {
-						new DFM_Transient_Hook( $transient_id, $transient_args->update_hooks, $async_update );
+						new DFM_Transient_Hook( $transient_id, $transient_args, $transient_args->update_hooks, $async_update );
 					}
 
 				}

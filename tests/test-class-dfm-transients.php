@@ -355,13 +355,13 @@ class Test_Class_DFM_Transients extends WP_UnitTestCase {
 
 		$transient_name = 'testGetTransientFromTermMeta';
 		$this->register_transient( $transient_name, [
-			'callback' => function( $modifier ) {
-				return 'term id: ' . $modifier;
+			'callback' => function( $modifier, $term_id ) {
+				return 'term id: ' . $term_id;
 			},
 			'cache_type' => 'term_meta',
 		] );
 
-		$transient_obj = new DFM_Transients( $transient_name, $term_id );
+		$transient_obj = new DFM_Transients( $transient_name, '', $term_id );
 		$key = $transient_obj->key;
 
 		$actual = $transient_obj->get();
@@ -380,25 +380,157 @@ class Test_Class_DFM_Transients extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test getting a transient from term meta when there are multiple modifiers
+	 * @throws Exception
+	 */
+	public function testGetTransientFromTermMetaWithModifier() {
+
+		$term_id = $this->factory->term->create();
+
+		$transient_name = 'testGetTransientFromTermMetaWithModifier';
+		$return_string = 'Term ID: %d, Modifier: %s';
+		$test_value = 'some test value';
+
+		$this->register_transient( $transient_name, [
+			'callback' => function( $modifier, $term_id ) use ( $return_string ) {
+				return sprintf( $return_string, $term_id, $modifier );
+			},
+			'cache_type' => 'term_meta',
+			'hash_key' => true,
+		] );
+
+		$modifier_1 = 'first_mod';
+		$modifier_2 = 'second_mod';
+
+		$transient_obj_1 = new DFM_Transients( $transient_name, $modifier_1, $term_id );
+		$transient_obj_2 = new DFM_Transients( $transient_name, $modifier_2, $term_id );
+		$key_1 = $transient_obj_1->key;
+		$key_2 = $transient_obj_2->key;
+
+		$this->assertEquals( sprintf( $return_string, $term_id, $modifier_1 ), $transient_obj_1->get() );
+		$this->assertEquals( sprintf( $return_string, $term_id, $modifier_2 ), $transient_obj_2->get() );
+
+		$transient_obj_1->set( $test_value );
+		$transient_obj_2->set( $test_value );
+		$this->assertEquals( $test_value, $transient_obj_1->get() );
+		$this->assertEquals( $test_value, $transient_obj_2->get() );
+
+		$transient_obj_1->delete();
+		$this->assertEquals( '', get_term_meta( $term_id, $key_1, true ) );
+		$this->assertEquals( sprintf( $return_string, $term_id, $modifier_1 ), $transient_obj_1->get() );
+		$this->assertEquals( sprintf( $return_string, $term_id, $modifier_1 ), get_term_meta( $term_id, $key_1, true ) );
+
+		$transient_obj_2->delete();
+		$this->assertEquals( '', get_term_meta( $term_id, $key_2, true ) );
+		$this->assertEquals( sprintf( $return_string, $term_id, $modifier_2 ), $transient_obj_2->get() );
+		$this->assertEquals( sprintf( $return_string, $term_id, $modifier_2 ), get_term_meta( $term_id, $key_2, true ) );
+
+	}
+
+	/**
+	 * Test for retrieving transients with a modifier using the post meta cache
+	 */
+	public function testGetTransientFromPostMetaWithModifier() {
+
+		$post_id = $this->factory->post->create();
+
+		$transient_name = 'testGetTransientFromPostMetaWithModifier';
+		$return_string = 'Post ID: %d, Modifier: %s';
+		$test_value = 'test value';
+
+		$this->register_transient( $transient_name, [
+			'callback' => function( $modifier, $post_id ) use ( $return_string ) {
+				return sprintf( $return_string, $post_id, $modifier );
+			},
+			'cache_type' => 'post_meta',
+			'async_updates' => true,
+			'update_hooks' => 'updated_post_meta',
+			'expiration' => HOUR_IN_SECONDS,
+			'soft_expiration' => true,
+		] );
+
+		$modifier_1 = 'dragons';
+		$modifier_2 = 'rainbows';
+
+		$transient_obj_1 = new DFM_Transients( $transient_name, $modifier_1, $post_id );
+		$transient_obj_2 = new DFM_Transients( $transient_name, $modifier_2, $post_id );
+		$key_1 = $transient_obj_1->key;
+		$key_2 = $transient_obj_2->key;
+
+		$this->assertEquals( sprintf( $return_string, $post_id, $modifier_1 ), $transient_obj_1->get() );
+		$this->assertEquals( sprintf( $return_string, $post_id, $modifier_2 ), $transient_obj_2->get() );
+
+		$transient_obj_1->set( $test_value );
+		$transient_obj_2->set( $test_value );
+		$this->assertEquals( $test_value, $transient_obj_1->get() );
+		$this->assertEquals( $test_value, $transient_obj_2->get() );
+
+		$transient_obj_1->delete();
+		$this->assertEquals( '', get_post_meta( $post_id, $key_1, true) );
+		$this->assertEquals( sprintf( $return_string, $post_id, $modifier_1 ), $transient_obj_1->get() );
+		$this->assertEquals( sprintf( $return_string, $post_id, $modifier_1 ), get_post_meta( $post_id, $key_1, true )['data'] );
+		$this->assertArrayHasKey( 'expiration', get_post_meta( $post_id, $key_1, true ) );
+
+		$transient_obj_2->delete();
+		$this->assertEquals( '', get_post_meta( $post_id, $key_2, true) );
+		$this->assertEquals( sprintf( $return_string, $post_id, $modifier_2 ), $transient_obj_2->get() );
+		$this->assertEquals( sprintf( $return_string, $post_id, $modifier_2 ), get_post_meta( $post_id, $key_2, true )['data'] );
+		$this->assertArrayHasKey( 'expiration', get_post_meta( $post_id, $key_2, true ) );
+
+	}
+
+	/**
+	 * Tests to ensure we haven't broken object type cache transients before we implemented modifiers for them
+	 */
+	public function testTermMetaTransientBackwardsCompat() {
+
+		$term_id = $this->factory->term->create();
+		$transient_name = 'testTermMetaTransientBackwardsCompat';
+		$return_string = 'term id: %d';
+
+		$this->register_transient( $transient_name, [
+			'callback' => function( $modifier ) use ( $return_string ) {
+				return sprintf( $return_string, $modifier );
+			},
+			'cache_type' => 'term_meta',
+		] );
+
+		$transient_obj = new DFM_Transients( $transient_name, $term_id );
+		$key = $transient_obj->key;
+
+		$this->assertEquals( sprintf( $return_string, $term_id ), $transient_obj->get() );
+
+		$transient_obj->set( 'test data' );
+		$this->assertEquals( 'test data', $transient_obj->get() );
+
+		$transient_obj->delete();
+		$this->assertEquals( '', get_term_meta( $term_id, $key, true ) );
+		$this->assertEquals( sprintf( $return_string, $term_id ), $transient_obj->get() );
+		$this->assertEquals( sprintf( $return_string, $term_id ), get_term_meta( $term_id, $key, true ) );
+
+	 }
+
+	/**
 	 * Test to make sure getting transient data from post meta works correctly
 	 */
 	public function testGetTransientFromPostMeta() {
 
 		$post_id = $this->factory->post->create();
 		$transient_name = 'testGetTransientFromPostMeta';
+		$custom_modifier = 'test';
 
 		$this->register_transient( $transient_name, [
 			'callback' => function( $modifier ) {
-				return 'post id: ' . $modifier;
+				return 'transient data: ' . $modifier;
 			},
 			'cache_type' => 'post_meta',
 		] );
 
-		$transient_obj = new DFM_Transients( $transient_name, $post_id );
+		$transient_obj = new DFM_Transients( $transient_name, $custom_modifier, $post_id );
 		$key = $transient_obj->key;
 
 		$actual = $transient_obj->get();
-		$expected = 'post id: ' . $post_id;
+		$expected = 'transient data: ' . $custom_modifier;
 		$this->assertEquals( $expected, $actual );
 
 		$transient_obj->set( 'some test value' );
@@ -420,8 +552,8 @@ class Test_Class_DFM_Transients extends WP_UnitTestCase {
 		$transient_name = 'testGetTransientFromMetaWithExpiration';
 
 		$this->register_transient( $transient_name, [
-			'callback' => function( $modifier ) {
-				return 'post id: ' . $modifier;
+			'callback' => function() {
+				return 'transient data for post';
 			},
 			'cache_type' => 'post_meta',
 			'expiration' => DAY_IN_SECONDS,
@@ -429,11 +561,11 @@ class Test_Class_DFM_Transients extends WP_UnitTestCase {
 			'hash_key' => true,
 		] );
 
-		$transient_obj = new DFM_Transients( $transient_name, $post_id );
+		$transient_obj = new DFM_Transients( $transient_name, '', $post_id );
 		$key = $transient_obj->key;
 
 		$actual = $transient_obj->get();
-		$expected = 'post id: ' . $post_id;
+		$expected = 'transient data for post';
 		$this->assertEquals( $expected, $actual );
 
 		$transient_obj->set( 'some test value' );
@@ -455,28 +587,27 @@ class Test_Class_DFM_Transients extends WP_UnitTestCase {
 
 		$user_id = $this->factory->user->create();
 		$transient_name = 'testGetTransientFromUserMeta';
+		$return_string = 'User ID: %d, Modifier: %s';
 
 		$this->register_transient( $transient_name, [
-			'callback' => function( $modifier ) {
-				return 'user id: ' . $modifier;
+			'callback' => function( $modifier, $user_ID ) use ( $return_string ) {
+				return sprintf( $return_string, $user_ID, $modifier );
 			},
 			'cache_type' => 'user_meta',
 		] );
 
-		$transient_obj = new DFM_Transients( $transient_name, $user_id );
+		$transient_obj = new DFM_Transients( $transient_name, '', $user_id );
 		$key = $transient_obj->key;
 
-		$actual = $transient_obj->get();
-		$expected = 'user id: ' . $user_id;
-		$this->assertEquals( $actual, $expected );
+		$this->assertEquals( sprintf( $return_string, $user_id, '' ), $transient_obj->get() );
 
 		$transient_obj->set( 'some test value' );
 		$this->assertEquals( 'some test value', $transient_obj->get() );
 
 		$transient_obj->delete();
 		$this->assertEquals( '', get_user_meta( $user_id, $key, true ) );
-		$this->assertEquals( $expected, $transient_obj->get() );
-		$this->assertEquals( $expected, get_user_meta( $user_id, $key, true ) );
+		$this->assertEquals( sprintf( $return_string, $user_id, '' ), $transient_obj->get() );
+		$this->assertEquals( sprintf( $return_string, $user_id, '' ), get_user_meta( $user_id, $key, true ) );
 
 	}
 
@@ -582,10 +713,7 @@ class Test_Class_DFM_Transients extends WP_UnitTestCase {
 		$transient_obj = new DFM_Transients( $transient_name, '' );
 
 		$this->assertTrue( is_wp_error( $transient_obj->get() ) );
-
-		$this->setExpectedException( 'Exception', 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.' );
-		$this->expectException( $transient_obj->set( 'test' ) );
-
+		$this->assertTrue( is_wp_error( $transient_obj->set( 'test' ) ) );
 
 	}
 
@@ -600,8 +728,7 @@ class Test_Class_DFM_Transients extends WP_UnitTestCase {
 
 		$transient_obj = new DFM_Transients( $transient_name, '' );
 
-		$this->setExpectedException( 'Exception', 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.' );
-		$this->expectException( $transient_obj->delete() );
+		$this->assertTrue( is_wp_error( $transient_obj->delete() ) );
 
 	}
 

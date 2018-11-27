@@ -53,10 +53,10 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 					// If there are multiple hooks where this should fire, loop through all of them, and build a hook for each.
 					if ( is_array( $transient_args->update_hooks ) ) {
 						foreach ( $transient_args->update_hooks as $hook_name => $callback ) {
-							new DFM_Transient_Hook( $transient_id, $hook_name, $async_update, $callback );
+							new DFM_Transient_Hook( $transient_id, $transient_args, $hook_name, $async_update, $callback );
 						}
 					} else {
-						new DFM_Transient_Hook( $transient_id, $transient_args->update_hooks, $async_update );
+						new DFM_Transient_Hook( $transient_id, $transient_args, $transient_args->update_hooks, $async_update );
 					}
 
 				}
@@ -90,6 +90,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 			$transient_name = empty( $_POST['transient_name'] ) ? false : sanitize_text_field( $_POST['transient_name'] );
 			$modifier       = empty( $_POST['modifier'] ) ? '' : sanitize_text_field( $_POST['modifier'] );
+			$object_id      = empty( $_POST['object_id'] ) ? null : sanitize_text_field( $_POST['object_id'] );
 			$nonce          = empty( $_POST['_nonce'] ) ? '' : sanitize_text_field( $_POST['_nonce'] );
 			$lock_key       = empty( $_POST['lock_key'] ) ? '' : sanitize_text_field( $_POST['lock_key'] );
 
@@ -105,7 +106,11 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 				return;
 			}
 
-			$transient_obj = new DFM_Transients( $transient_name, $modifier );
+			$transient_obj = new DFM_Transients( $transient_name, $modifier, $object_id );
+
+			if ( 'transient' !== $transient_obj->transient_object->cache_type && empty( $object_id ) ) {
+				$object_id = absint( $modifier );
+			}
 
 			// Bail if another process is already trying to update this transient.
 			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( $lock_key ) ) {
@@ -116,7 +121,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 				$transient_obj->lock_update();
 			}
 
-			$data = call_user_func( $transient_obj->transient_object->callback, $modifier );
+			$data = call_user_func( $transient_obj->transient_object->callback, $modifier, $object_id );
 			$transient_obj->set( $data );
 
 			$transient_obj->unlock_update();

@@ -161,7 +161,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 							$this->dispatch_update( $key_modifier, $key );
 						}
 					} else {
-						if ( is_array( $modifier ) ) {
+						if ( empty( $modifier ) ) {
 							$modifier = $key;
 						}
 						$this->dispatch_update( $modifier );

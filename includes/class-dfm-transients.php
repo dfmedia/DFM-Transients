@@ -12,7 +12,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @var string
 		 * @access private
 		 */
-		private static $prefix = 'dfm_transient_';
+		private $prefix = 'dfm_transient_';
 
 		/**
 		 * Name of the transient
@@ -37,21 +37,6 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @access private
 		 */
 		public $modifier = '';
-
-		/**
-		 * Stored the object ID where the transient data is stored
-		 *
-		 * @var int|null $object_id
-		 */
-		public $object_id = 0;
-
-		/**
-		 * Modifier added for backwards compatibility
-		 *
-		 * @var string $bc_modifier
-		 * @access private
-		 */
-		private $bc_modifier = '';
 
 		/**
 		 * The storage key for the transient
@@ -96,13 +81,12 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * DFM_Transients constructor.
 		 *
-		 * @param string     $transient Name of the transient
-		 * @param string|int $modifier  Unique modifier for the transient
-		 * @param null|int   $object_id The ID of the object the transient data is related to
+		 * @param string $transient Name of the transient
+		 * @param string|int $modifier Unique modifier for the transient
 		 *
 		 * @throws Exception
 		 */
-		function __construct( $transient, $modifier, $object_id = null ) {
+		function __construct( $transient, $modifier ) {
 
 			global $dfm_transients;
 
@@ -112,24 +96,10 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			$this->transient        = $transient;
 			$this->modifier         = $modifier;
-			$this->object_id        = $object_id;
 			$this->transient_object = $dfm_transients[ $this->transient ];
+			$this->key              = $this->cache_key();
 			$this->lock_key         = uniqid( 'dfm_lt_' );
-			self::$prefix           = apply_filters( 'dfm_transient_prefix', 'dfm_transient_', $this->transient, $this->modifier, $this->object_id );
-
-			/**
-			 * For backwards compatibility, use the modifier value as the object ID if no ID is supplied, but it's an object type cache.
-			 */
-			if ( 'transient' !== $this->transient_object->cache_type && empty( $object_id ) ) {
-				$this->object_id = absint( $modifier );
-				$this->bc_modifier = $modifier;
-				$this->modifier = '';
-			}
-
-			/**
-			 * Generate the cache key after we've applied the backward compat fix above ^
-			 */
-			$this->key = $this->cache_key();
+			$this->prefix           = apply_filters( 'dfm_transient_prefix', 'dfm_transient_' );
 
 		}
 
@@ -140,17 +110,6 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @access public
 		 */
 		public function get() {
-
-			if ( 'transient' === $this->transient_object->cache_type ) {
-				$this->get_from_transient();
-			} else {
-				$meta_type = DFM_Transient_Utils::get_meta_type( $this->transient_object->cache_type );
-				if ( is_wp_error( $meta_type ) ) {
-					return $meta_type;
-				} else {
-					$this->get_from_meta( $meta_type );
-				}
-			}
 
 			switch ( $this->transient_object->cache_type ) {
 				case 'transient':
@@ -176,7 +135,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 *
 		 * @param string|array $data The data to add to the transient
 		 * @access public
-		 * @return mixed|WP_Error|Void
+		 * @return void
 		 * @throws Exception
 		 */
 		public function set( $data ) {
@@ -186,15 +145,21 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				return;
 			}
 
-			if ( 'transient' === $this->transient_object->cache_type ) {
-				$this->save_to_transient( $data );
-			} else {
-				$meta_type = DFM_Transient_Utils::get_meta_type( $this->transient_object->cache_type );
-				if ( is_wp_error( $meta_type ) ) {
-					return $meta_type;
-				} else {
-					$this->save_to_metadata( $data, $meta_type );
-				}
+			switch ( $this->transient_object->cache_type ) {
+				case 'transient':
+					$this->save_to_transient( $data );
+					break;
+				case 'post_meta':
+					$this->save_to_metadata( $data, 'post' );
+					break;
+				case 'term_meta':
+					$this->save_to_metadata( $data, 'term' );
+					break;
+				case 'user_meta':
+					$this->save_to_metadata( $data, 'user' );
+					break;
+				default:
+					throw new Exception( __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
 			}
 
 		}
@@ -202,21 +167,27 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		/**
 		 * This method handles the deletion of a transient
 		 *
-		 * @return mixed|void|WP_Error
+		 * @return void
 		 * @access public
 		 * @throws Exception
 		 */
 		public function delete() {
 
-			if ( 'transient' === $this->transient_object->cache_type ) {
-				$this->delete_from_transient();
-			} else {
-				$meta_type = DFM_Transient_Utils::get_meta_type( $this->transient_object->cache_type );
-				if ( is_wp_error( $meta_type ) ) {
-					return $meta_type;
-				} else {
-					$this->delete_from_metadata( $meta_type );
-				}
+			switch ( $this->transient_object->cache_type ) {
+				case 'transient':
+					$this->delete_from_transient();
+					break;
+				case 'post_meta':
+					$this->delete_from_metadata( 'post' );
+					break;
+				case 'term_meta':
+					$this->delete_from_metadata( 'term' );
+					break;
+				case 'user_meta':
+					$this->delete_from_metadata( 'user' );
+					break;
+				default:
+					throw new Exception( __( 'When registering your transient, you used an invalid cache type. Valid options are transient, post_meta, term_meta.', 'dfm-transients' ) );
 			}
 
 		}
@@ -296,7 +267,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 */
 		private function get_from_meta( $type ) {
 
-			$data = get_metadata( $type, $this->object_id, $this->key, true );
+			$data = get_metadata( $type, $this->modifier, $this->key, true );
 
 			if ( empty( $data ) ) {
 				$data_exists = metadata_exists( $type, $this->modifier, $this->key );
@@ -316,26 +287,19 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 */
 		private function get_transient_data( $data ) {
 
-			// Check to see if we set a backwards compatible modifier
-			if ( 'transient' !== $this->transient_object->cache_type && ! empty( $this->bc_modifier ) ) {
-				$modifier = $this->bc_modifier;
-			} else {
-				$modifier = $this->modifier;
-			}
-
 			if ( false === $data || ( defined( 'DFM_TRANSIENTS_HOT_RELOAD' ) && true === DFM_TRANSIENTS_HOT_RELOAD ) ) {
 
 				if ( true === $this->doing_retry() ) {
 					return false;
 				}
-				$data = call_user_func( $this->transient_object->callback, $modifier, $this->object_id );
+				$data = call_user_func( $this->transient_object->callback, $this->modifier );
 				$this->set( $data );
 			} elseif ( $this->is_expired( $data ) && ! $this->is_locked() ) {
 				$this->lock_update();
 				if ( $this->should_soft_expire() ) {
-					new DFM_Async_Handler( $this->transient, $modifier, $this->object_id, $this->lock_key );
+					new DFM_Async_Handler( $this->transient, $this->modifier, $this->lock_key );
 				} else {
-					$data = call_user_func( $this->transient_object->callback, $modifier, $this->object_id );
+					$data = call_user_func( $this->transient_object->callback, $this->modifier );
 					$this->set( $data );
 					$this->unlock_update();
 				}
@@ -395,11 +359,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				);
 			}
 
-			$r = update_metadata( $type, $this->object_id, $this->key, $data );
-
-			if ( ! empty( $this->modifier ) ) {
-				$this->add_meta_map( $type, $this->transient_object->key );
-			}
+			update_metadata( $type, $this->modifier, $this->key, $data );
 
 		}
 
@@ -423,76 +383,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @access private
 		 */
 		private function delete_from_metadata( $type ) {
-			if ( ! empty( $this->modifier ) ) {
-				$meta_map = $this->get_meta_map( $type, $this->object_id, $this->key );
-				if ( ! empty( $meta_map ) && is_array( $meta_map ) ) {
-					foreach ( $meta_map as $key ) {
-						delete_metadata( $type, $this->object_id, $key );
-					}
-				}
-			}
-			delete_metadata( $type, $this->object_id, $this->key );
-		}
-
-		/**
-		 * Add the transient keys to the mapping so they can be found easily later
-		 *
-		 * @param string $type          The type of meta to store the map in
-		 * @param string $transient_key The key for the transient group to create the map key off of
-		 *
-		 * @return void
-		 * @access private
-		 */
-		private function add_meta_map( $type, $transient_key ) {
-
-			$map = get_metadata( $type, $this->object_id, self::meta_map_key( $transient_key ), true );
-			if ( ! empty( $map ) ) {
-				$map[ $this->modifier ] = $this->key;
-			} else {
-				$map = [ $this->modifier => $this->key ];
-			}
-
-			update_metadata( $type, $this->object_id, $this->meta_map_key( $transient_key ), array_unique( $map ) );
-
-		}
-
-		/**
-		 * Return a map of meta keys for all of the modifiers for a transient registered in the group
-		 *
-		 * @param string $type          The meta type to use for storage
-		 * @param int    $object_id     The ID of the object to store the meta map in
-		 * @param string $transient_key Key for the transient group the transient belongs to
-		 *
-		 * @return array
-		 * @access public
-		 * @static
-		 */
-		public static function get_meta_map( $type, $object_id, $transient_key ) {
-
-			if ( is_wp_error( $type ) ) {
-				return array();
-			}
-
-			$map = get_metadata( $type, $object_id, self::meta_map_key( $transient_key ), true );
-			if ( empty( $map ) ) {
-				$map = [];
-			}
-
-			return $map;
-
-		}
-
-		/**
-		 * Return the meta map key for the transient group
-		 *
-		 * @param string $transient_key Transient key for the transient group
-		 *
-		 * @return string
-		 * @access public
-		 * @static
-		 */
-		public static function meta_map_key( $transient_key ) {
-			return self::$prefix . $transient_key . '_map';
+			delete_metadata( $type, $this->modifier, $this->key );
 		}
 
 		/**
@@ -502,7 +393,6 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 *
 		 * @access private
 		 * @return void
-		 * @throws Exception
 		 */
 		private function facilitate_retry() {
 
@@ -565,7 +455,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 				 * If the storage type is *_meta then prepend the prefix after we hash so we can
 				 * still find it for debugging
 				 */
-				$hashed_key = self::$prefix . $hashed_key;
+				$hashed_key = $this->prefix . $hashed_key;
 			}
 
 			return $hashed_key;
@@ -582,7 +472,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			$key = $this->transient_object->key;
 
-			if ( ! empty( $this->modifier ) ) {
+			if ( 'transient' === $this->transient_object->cache_type && ! empty( $this->modifier ) ) {
 				// Add the unique modifier to the key for regular transients
 				$key = $key . '_' . $this->modifier;
 			}
@@ -593,7 +483,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 
 			if ( in_array( $this->transient_object->cache_type, $this->meta_types, true ) ) {
 				// Add the prefix to transients stored in meta only so they can be identified
-				$key = self::$prefix . $key;
+				$key = $this->prefix . $key;
 			}
 
 			return $key;

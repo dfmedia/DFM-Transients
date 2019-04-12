@@ -8,6 +8,10 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 	 */
 	class DFM_Transient_Scheduler {
 
+		const API_NAMESPACE = 'dfm-transients/v1';
+
+		const ENDPOINT_RUN = 'regenerate';
+
 		/**
 		 * Stores the names of all the transient ID's
 		 * @var array
@@ -23,6 +27,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 		function __construct() {
 			// Adds a high priority to make sure all of the transients have been registered.
 			add_action( 'wp_loaded', array( $this, 'get_transients' ), 9999 );
+			add_action( 'rest_api_init', [ $this, 'register_rest_endpoint' ] );
 		}
 
 		/**
@@ -63,52 +68,83 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 			}
 
-			// Kick off generation of async processing hooks.
-			$this->post_processing_hooks();
-
 		}
 
+		public function register_rest_endpoint() {
+			register_rest_route(
+				self::API_NAMESPACE, '/' . self::ENDPOINT_RUN . '/(?P<transient>[\w|-]+)', [
+					'methods'             => 'PUT',
+					'callback'            => [ $this, 'rest_handler' ],
+					'permission_callback' => [ $this, 'check_rest_permissions' ],
+					'show_in_index'       => false,
+				]
+			);
+		}
+
+
 		/**
-		 * Build a hook for an async process for each of the transients to grab onto
+		 * Check that the endpoint is actually accessible
 		 *
-		 * @return void
-		 * @access public
+		 * @param WP_REST_Request $request The incoming request object
+		 *
+		 * @return bool|WP_Error
 		 */
-		private function post_processing_hooks() {
-			foreach ( $this->transient_ids as $transient_id ) {
-				add_action( 'admin_post_nopriv_dfm_' . $transient_id, array( $this, 'run_update' ) );
+		public function check_rest_permissions( $request ) {
+
+			$body = json_decode( $request->get_body(), true );
+
+			if (
+				! defined( 'DFM_TRANSIENTS_SECRET' ) ||
+				! isset( $body['secret'] ) ||
+				! hash_equals( DFM_TRANSIENTS_SECRET, $body['secret'] )
+			) {
+				return new \WP_Error( 'no-secret', __( 'Secret must be defined and passed to the request for the async processor to run', 'dfm-transients' ) );
 			}
+
+			return true;
+
 		}
 
 		/**
 		 * Handle the update for async data processing
 		 *
-		 * @return void
+		 * @param WP_REST_Request $request The incoming request object
+		 *
+		 * @return WP_REST_Response
 		 * @access public
 		 */
-		public function run_update() {
+		public function rest_handler( $request ) {
 
-			$transient_name = empty( $_POST['transient_name'] ) ? false : sanitize_text_field( $_POST['transient_name'] );
-			$modifier       = empty( $_POST['modifier'] ) ? '' : sanitize_text_field( $_POST['modifier'] );
-			$nonce          = empty( $_POST['_nonce'] ) ? '' : sanitize_text_field( $_POST['_nonce'] );
-			$lock_key       = empty( $_POST['lock_key'] ) ? '' : sanitize_text_field( $_POST['lock_key'] );
+			$transient_name = ( isset( $request['transient'] ) ) ? $request['transient'] : '';
+			$body = json_decode( $request->get_body(), true );
+			$modifiers = ( ! empty( $body['modifiers'] ) ) ? absint( $body['modifiers'] ) : '';
+			$key = ( ! empty( $body['lock_key'] ) ) ? sanitize_text_field( $body['lock_key'] ) : '';
 
-			// Bail if a transient name wasn't passed for some reason
-			if ( empty( $transient_name ) ) {
-				return;
+			/**
+			 * Make the request as non-blocking as possible
+			 */
+			if ( function_exists( 'fastcgi_finish_request' ) && version_compare( phpversion(), '7.0.16', '>=' ) ) {
+				fastcgi_finish_request();
 			}
 
-			$verify_nonce = new DFM_Async_Nonce( $transient_name );
-
-			// Bail if we couldn't verify the nonce as legit
-			if ( false === $verify_nonce->verify( $nonce ) ) {
-				return;
+			if ( is_array( $modifiers ) ) {
+				foreach ( $modifiers as $modifier ) {
+					self::run_update( $transient_name, $modifier, $key );
+				}
+			} else {
+				self::run_update( $transient_name, $modifiers, $key );
 			}
 
-			$transient_obj = new DFM_Transients( $transient_name, $modifier );
+			return rest_ensure_response( sprintf( __( '%s transient updated', 'wp-queue-tasks' ), $transient_name ) );
+
+		}
+
+		public static function run_update( $transient, $modifier, $key ) {
+
+			$transient_obj = new DFM_Transients( $transient, $modifier );
 
 			// Bail if another process is already trying to update this transient.
-			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( $lock_key ) ) {
+			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( $key ) ) {
 				return;
 			}
 
@@ -116,7 +152,19 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 				$transient_obj->lock_update();
 			}
 
-			$data = call_user_func( $transient_obj->transient_object->callback, $modifier );
+			try {
+				$data = call_user_func( $transient_obj->transient_object->callback, $modifier );
+			} catch ( \Throwable $error ) {
+
+				/**
+				 * Hook that fires if the update fails
+				 *
+				 * @param Throwable $error The error returned from the
+				 */
+				do_action( 'dfm_transients_update_failed', $error, $transient_obj, $key );
+				return;
+			}
+
 			$transient_obj->set( $data );
 
 			$transient_obj->unlock_update();

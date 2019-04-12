@@ -33,6 +33,14 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		private $callback;
 
 		/**
+		 * Store the updates to run
+		 *
+		 * @var array $updates
+		 * @access private
+		 */
+		public static $updates;
+
+		/**
 		 * DFM_Transient_Hook constructor.
 		 *
 		 * @param string $transient
@@ -64,33 +72,6 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		}
 
 		/**
-		 * Run an update in real time for the transient.
-		 *
-		 * @param string $modifier Name of the modifier
-		 * @return void
-		 * @access private
-		 */
-		private function run_update( $modifier ) {
-
-			$transient_obj = new DFM_Transients( $this->transient, $modifier );
-
-			// Bail if another process is already trying to update this transient.
-			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( '' ) ) {
-				return;
-			}
-
-			if ( ! $transient_obj->is_locked() ) {
-				$transient_obj->lock_update();
-			}
-
-			$data = call_user_func( $transient_obj->transient_object->callback, $modifier );
-			$transient_obj->set( $data );
-
-			$transient_obj->unlock_update();
-
-		}
-
-		/**
 		 * Spawn a process to regenerate the transient data
 		 *
 		 * @return void
@@ -119,13 +100,14 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 			// If we are running an async task, instantiate a new async handler.
 			if ( $this->async ) {
 
-				// If we have an array of modifiers, update each of them.
-				if ( is_array( $modifiers ) ) {
-					foreach ( $modifiers as $modifier ) {
-						new DFM_Async_Handler( $this->transient, $modifier );
+				if ( ! empty( self::$updates[ $this->transient ] ) ) {
+					$existing_updates = self::$updates[ $this->transient ];
+					if ( ! is_array( $existing_updates ) ) {
+						$existing_updates = [ $existing_updates ];
 					}
+					self::$updates[ $this->transient ] = array_unique( array_merge( $existing_updates, $modifiers ) );
 				} else {
-					new DFM_Async_Handler( $this->transient, $modifiers );
+					self::$updates[ $this->transient ] = $modifiers;
 				}
 
 				// Run the update in real time if we aren't using an async process
@@ -134,10 +116,10 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				// If we have an array of modifiers, update each of them.
 				if ( is_array( $modifiers ) ) {
 					foreach ( $modifiers as $modifier ) {
-						$this->run_update( $modifier );
+						DFM_Transient_Scheduler::run_update( $this->transient, $modifier, '' );
 					}
 				} else {
-					$this->run_update( $modifiers );
+					DFM_Transient_Scheduler::run_update( $this->transient, $modifiers, '' );
 				}
 
 			}

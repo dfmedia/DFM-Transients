@@ -46,7 +46,11 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 			// Spawn the event on shutdown so we are less likely to run into timeouts, or block other processes
 
 			if ( ! defined( 'DOING_CRON' ) && ! defined( 'REST_REQUEST' ) ) {
-				add_action( 'shutdown', array( $this, 'spawn_event' ) );
+				if ( 'shutdown' === current_action() ) {
+					$this->spawn_event();
+				} else {
+					add_action( 'shutdown', array( $this, 'spawn_event' ) );
+				}
 			}
 
 		}
@@ -63,15 +67,11 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 				return new \WP_Error( 'no-secret', __( 'You need to define the DFM_TRANSIENTS_SECRET constant in order to use this feature', 'dfm-transients' ) );
 			}
 
-			$nonce = new DFM_Async_Nonce( $this->transient_name );
-			$nonce = $nonce->create();
-
 			$request_args = array(
 				'timeout'  => 0.01,
 				'blocking' => false, // don't wait for a response
 				'body'     => array(
 					'modifiers'      => $this->modifiers,
-					'_nonce'         => $nonce,
 					'lock_key'       => $this->lock_key,
 				),
 			);

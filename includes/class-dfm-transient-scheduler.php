@@ -28,6 +28,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 			// Adds a high priority to make sure all of the transients have been registered.
 			add_action( 'wp_loaded', array( $this, 'get_transients' ), 9999 );
 			add_action( 'rest_api_init', [ $this, 'register_rest_endpoint' ] );
+			add_action( 'shutdown', [ $this, 'execute_async_updates' ] );
 		}
 
 		/**
@@ -139,6 +140,20 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 		}
 
+		/**
+		 * Executes the async updates for all of the transients that need to be updated
+		 *
+		 * @access public
+		 * @return void
+		 */
+		public function execute_async_updates() {
+			if ( ! empty( DFM_Transient_Hook::$updates ) && is_array( DFM_Transient_Hook::$updates ) ) {
+				foreach ( DFM_Transient_Hook::$updates as $transient_name => $modifiers ) {
+					new DFM_Async_Handler( $transient_name, $modifiers );
+				}
+			}
+		}
+
 		public static function run_update( $transient, $modifier, $key ) {
 
 			$transient_obj = new DFM_Transients( $transient, $modifier );
@@ -159,7 +174,9 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 				/**
 				 * Hook that fires if the update fails
 				 *
-				 * @param Throwable $error The error returned from the
+				 * @param Throwable $error The error returned from the callback
+				 * @param DFM_Transients $transient_obj The transient object
+				 * @param string $key The key for the transient lock
 				 */
 				do_action( 'dfm_transients_update_failed', $error, $transient_obj, $key );
 				return;

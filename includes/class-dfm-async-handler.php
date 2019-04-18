@@ -70,10 +70,12 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 			$request_args = array(
 				'timeout'  => 0.01,
 				'blocking' => false, // don't wait for a response
-				'body'     => array(
+				'method'   => 'PUT',
+				'body'     => wp_json_encode( array(
+					'secret'         => DFM_TRANSIENTS_SECRET,
 					'modifiers'      => $this->modifiers,
 					'lock_key'       => $this->lock_key,
-				),
+				) ),
 			);
 
 			$url = get_rest_url( null, DFM_Transient_Scheduler::API_NAMESPACE . '/' . DFM_Transient_Scheduler::ENDPOINT_RUN . '/' . $this->transient_name );

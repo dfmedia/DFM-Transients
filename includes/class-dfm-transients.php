@@ -540,7 +540,7 @@ if ( ! class_exists( 'DFM_Transients' ) ) :
 		 * @access private
 		 * @return bool
 		 */
-		private function doing_retry() {
+		protected function doing_retry() {
 			return (bool) $this->doing_retry;
 		}
 

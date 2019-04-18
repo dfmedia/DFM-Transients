@@ -2,24 +2,6 @@
 class Test_Class_DFM_Transient_Scheduler extends WP_UnitTestCase {
 
 	/**
-	 * Test to make sure the hooks get setup properly
-	 */
-	public function testSetupHooks() {
-
-		$transient_name = 'testSetupHooks';
-		dfm_register_transient( $transient_name, [
-			'callback' => '__return_true',
-			'update_hooks' => [ 'test_hook', 'another_test_hook' ],
-		] );
-
-		$scheduler_obj = new DFM_Transient_Scheduler();
-		$scheduler_obj->get_transients();
-
-		$this->assertTrue( has_filter( 'admin_post_nopriv_dfm_' . $transient_name ) );
-
-	}
-
-	/**
 	 * Don't setup any hooks if no transients are registered
 	 */
 	public function testSetupHooksNotRun() {
@@ -56,15 +38,9 @@ class Test_Class_DFM_Transient_Scheduler extends WP_UnitTestCase {
 			'async_updates' => true,
 		] );
 
-		$nonce_obj = new DFM_Async_Nonce( $transient_name );
-
-		$_POST['transient_name'] = $transient_name;
-		$_POST['modifier'] = '1';
-		$_POST['_nonce'] = $nonce_obj->create();
-
 		$scheduler_obj = new DFM_Transient_Scheduler();
 
-		$scheduler_obj->run_update();
+		$scheduler_obj->run_update( $transient_name, '1', '' );
 
 		$expected = 'modifier: 1';
 		$actual = get_transient( $transient_name . '_1' );
@@ -74,6 +50,7 @@ class Test_Class_DFM_Transient_Scheduler extends WP_UnitTestCase {
 
 	/**
 	 * If no transient name is passed in the headers from the async handler, halt execution
+	 * @expectedException Exception
 	 */
 	public function testUnsuccessfulUpdateWithoutName() {
 
@@ -84,42 +61,9 @@ class Test_Class_DFM_Transient_Scheduler extends WP_UnitTestCase {
 			},
 		] );
 
-		$nonce_obj = new DFM_Async_Nonce( $transient_name );
-
-		$_POST['transient_name'] = ''; //This should kill the request
-		$_POST['modifier'] = '1';
-		$_POST['_nonce'] = $nonce_obj->create();
-
 		$scheduler_obj = new DFM_Transient_Scheduler();
-
-		$scheduler_obj->run_update();
-
-		$this->assertFalse( get_transient( $transient_name . '_1' ) );
-
-	}
-
-	/**
-	 * If the incorrect nonce is passed to the method from the handler, halt execution
-	 */
-	public function testUnsuccessfulUpdateWithoutNonce() {
-
-		$transient_name = 'testUnsuccessfulUpdateWithoutNonce';
-		dfm_register_transient( $transient_name, [
-			'callback' => function( $modifier ) {
-				return 'modifier: ' . $modifier;
-			},
-		] );
-
-		$nonce_obj = new DFM_Async_Nonce( $transient_name . '_test' );
-
-		$_POST['transient_name'] = $transient_name; //This should kill the request
-		$_POST['modifier'] = '1';
-		$_POST['_nonce'] = $nonce_obj->create();
-
-		$scheduler_obj = new DFM_Transient_Scheduler();
-
-		$scheduler_obj->run_update();
-
+		$response = $scheduler_obj->run_update( '', '1', '' );
+		$this->expectException( $response );
 		$this->assertFalse( get_transient( $transient_name . '_1' ) );
 
 	}
@@ -141,15 +85,9 @@ class Test_Class_DFM_Transient_Scheduler extends WP_UnitTestCase {
 		 */
 		set_transient( 'dfm_lt_' . $transient_name . '_1', 'somevalue' );
 
-		$nonce_obj = new DFM_Async_Nonce( $transient_name );
-
-		$_POST['transient_name'] = $transient_name; //This should kill the request
-		$_POST['modifier'] = '1';
-		$_POST['_nonce'] = $nonce_obj->create();
-
 		$scheduler_obj = new DFM_Transient_Scheduler();
 
-		$scheduler_obj->run_update();
+		$scheduler_obj->run_update( $transient_name, '1', '' );
 
 		$this->assertFalse( get_transient( $transient_name . '_1' ) );
 

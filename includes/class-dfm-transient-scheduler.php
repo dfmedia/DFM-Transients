@@ -118,7 +118,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 			$transient_name = ( isset( $request['transient'] ) ) ? $request['transient'] : '';
 			$body = json_decode( $request->get_body(), true );
-			$modifiers = ( ! empty( $body['modifiers'] ) ) ? absint( $body['modifiers'] ) : '';
+			$modifiers = ( ! empty( $body['modifiers'] ) ) ? $body['modifiers'] : '';
 			$key = ( ! empty( $body['lock_key'] ) ) ? sanitize_text_field( $body['lock_key'] ) : '';
 
 			/**
@@ -130,10 +130,14 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 			if ( is_array( $modifiers ) ) {
 				foreach ( $modifiers as $modifier ) {
-					self::run_update( $transient_name, $modifier, $key );
+					$result = self::run_update( $transient_name, $modifier, $key );
 				}
 			} else {
-				self::run_update( $transient_name, $modifiers, $key );
+				$result = self::run_update( $transient_name, $modifiers, $key );
+			}
+
+			if ( is_wp_error( $result ) ) {
+				return rest_ensure_response( $result );
 			}
 
 			return rest_ensure_response( sprintf( __( '%s transient updated', 'wp-queue-tasks' ), $transient_name ) );
@@ -147,8 +151,8 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 		 * @return void
 		 */
 		public function execute_async_updates() {
-			if ( ! empty( DFM_Transient_Hook::$updates ) && is_array( DFM_Transient_Hook::$updates ) ) {
-				foreach ( DFM_Transient_Hook::$updates as $transient_name => $modifiers ) {
+			if ( ! empty( DFM_Transient_Hook::get_updates() ) && is_array( DFM_Transient_Hook::get_updates() ) ) {
+				foreach ( DFM_Transient_Hook::get_updates() as $transient_name => $modifiers ) {
 					new DFM_Async_Handler( $transient_name, $modifiers );
 				}
 			}
@@ -160,7 +164,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 			// Bail if another process is already trying to update this transient.
 			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( $key ) ) {
-				return;
+				return new WP_Error( 'transient-update-failed', __( 'The current transient is locked from updates', 'dfm-transients' ) );
 			}
 
 			if ( ! $transient_obj->is_locked() ) {
@@ -179,7 +183,7 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 				 * @param string $key The key for the transient lock
 				 */
 				do_action( 'dfm_transients_update_failed', $error, $transient_obj, $key );
-				return;
+				return new WP_Error( 'transient-update-failed', __( 'The callback to update this transient returned with an error' ) );
 			}
 
 			$transient_obj->set( $data );

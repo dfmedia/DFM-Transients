@@ -38,7 +38,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		 * @var array $updates
 		 * @access private
 		 */
-		public static $updates;
+		private static $updates;
 
 		/**
 		 * DFM_Transient_Hook constructor.
@@ -69,6 +69,10 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		private function add_hook( $hook ) {
 			// Pass an arbitrarily high arg count to avoid errors.
 			add_action( $hook, array( $this, 'spawn' ), 10, 20 );
+		}
+
+		public static function get_updates() {
+			return self::$updates;
 		}
 
 		/**

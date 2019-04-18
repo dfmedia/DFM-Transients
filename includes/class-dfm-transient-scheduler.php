@@ -8,8 +8,14 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 	 */
 	class DFM_Transient_Scheduler {
 
+		/**
+		 * Namespace for the custom endpoint
+		 */
 		const API_NAMESPACE = 'dfm-transients/v1';
 
+		/**
+		 * Endpoint to run the regeneration on
+		 */
 		const ENDPOINT_RUN = 'regenerate';
 
 		/**
@@ -71,6 +77,12 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 
 		}
 
+		/**
+		 * Registers the custom endpoint. Callback on rest_api_init
+		 *
+		 * @access public
+		 * @return void
+		 */
 		public function register_rest_endpoint() {
 			register_rest_route(
 				self::API_NAMESPACE, '/' . self::ENDPOINT_RUN . '/(?P<transient>[\w|-]+)', [
@@ -158,6 +170,16 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 			}
 		}
 
+		/**
+		 * Runs the updates for transient callbacks
+		 *
+		 * @param string $transient The name of the transient to update
+		 * @param string|array|int $modifier The modifier(s) to update for the transient
+		 * @param string $key The lock key to verify the thread owns the current process
+		 *
+		 * @return WP_Error|bool
+		 * @throws Exception
+		 */
 		public static function run_update( $transient, $modifier, $key ) {
 
 			$transient_obj = new DFM_Transients( $transient, $modifier );
@@ -187,8 +209,8 @@ if ( ! class_exists( 'DFM_Transient_Scheduler' ) ) :
 			}
 
 			$transient_obj->set( $data );
-
 			$transient_obj->unlock_update();
+			return true;
 
 		}
 

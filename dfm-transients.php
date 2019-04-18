@@ -12,7 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once( plugin_dir_path( __FILE__ ) . 'includes/class-dfm-async-nonce.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-dfm-async-handler.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-dfm-transient-hook.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-dfm-transient-scheduler.php' );

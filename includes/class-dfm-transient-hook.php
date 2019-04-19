@@ -105,11 +105,19 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 			if ( $this->async ) {
 
 				if ( ! empty( self::$updates[ $this->transient ] ) ) {
+
 					$existing_updates = self::$updates[ $this->transient ];
+
 					if ( ! is_array( $existing_updates ) ) {
 						$existing_updates = [ $existing_updates ];
 					}
+
+					if ( ! is_array( $modifiers ) ) {
+						$modifiers = [ $modifiers ];
+					}
+
 					self::$updates[ $this->transient ] = array_unique( array_merge( $existing_updates, $modifiers ) );
+
 				} else {
 					self::$updates[ $this->transient ] = $modifiers;
 				}

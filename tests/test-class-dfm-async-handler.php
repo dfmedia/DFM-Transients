@@ -17,19 +17,4 @@ class Test_Class_DFM_Async_Handler extends WP_UnitTestCase {
 
 	}
 
-	/**
-	 * Test to make sure we halt execution if the async action is trying to trigger this method
-	 * since that will cause an infinite loop
-	 */
-	public function testAsyncRequestNotPosted() {
-
-		$async_obj = new DFM_Async_Handler( 'testTransient', '' );
-		$_POST['async_action'] = 'true';
-
-		$result = $async_obj->spawn_event();
-
-		$this->assertNull( $result );
-
-	}
-
 }

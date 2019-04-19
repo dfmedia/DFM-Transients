@@ -14,15 +14,7 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		 * @var string
 		 * @access private
 		 */
-		private $transient_name;
-
-		/**
-		 * The settings registered to the transient
-		 *
-		 * @var object $transient_obj
-		 * @access private
-		 */
-		private $transient_obj;
+		private $transient;
 
 		/**
 		 * Name of hook we want to hook into
@@ -41,30 +33,27 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 		private $callback;
 
 		/**
-		 * Whether or not the update should happen asynchronously
+		 * Store the updates to run
 		 *
-		 * @var bool $async
+		 * @var array $updates
 		 * @access private
-		 *
 		 */
-		private $async = false;
+		private static $updates;
 
 		/**
 		 * DFM_Transient_Hook constructor.
 		 *
-		 * @param string $transient_name Name of the transient to add the hook callback for
-		 * @param object $transient_obj  Settings that were added when the transient was registered
-		 * @param string $hook           Name of the hook
-		 * @param bool   $async_update   Whether or not the update should happen asynchronously or not
-		 * @param string $callback       The callable method to be added to the hook
+		 * @param string $transient
+		 * @param string $hook
+		 * @param bool $async_update
+		 * @param string $callback
 		 */
-		public function __construct( $transient_name, $transient_obj, $hook, $async_update, $callback = '' ) {
+		public function __construct( $transient, $hook, $async_update, $callback = '' ) {
 
-			$this->transient_name = $transient_name;
-			$this->transient_obj  = $transient_obj;
-			$this->hook           = $hook;
-			$this->callback       = $callback;
-			$this->async          = $async_update;
+			$this->transient = $transient;
+			$this->hook      = $hook;
+			$this->callback  = $callback;
+			$this->async     = $async_update;
 
 			$this->add_hook( $hook );
 
@@ -82,37 +71,8 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 			add_action( $hook, array( $this, 'spawn' ), 10, 20 );
 		}
 
-		/**
-		 * Run an update in real time for the transient.
-		 *
-		 * @param string $modifier Name of the modifier
-		 * @return void
-		 * @access private
-		 */
-		private function run_update( $modifier, $object_id = null ) {
-
-			if ( $this->async ) {
-				new DFM_Async_Handler( $this->transient_name, $modifier, $object_id );
-				return;
-			}
-
-			$transient_obj = new DFM_Transients( $this->transient_name, $modifier, $object_id );
-
-			// Bail if another process is already trying to update this transient.
-			if ( $transient_obj->is_locked() && ! $transient_obj->owns_lock( '' ) ) {
-				return;
-			}
-
-			if ( ! $transient_obj->is_locked() ) {
-				$transient_obj->lock_update();
-			}
-
-			$data = call_user_func( $transient_obj->transient_object->callback, $modifier, $object_id );
-
-			$transient_obj->set( $data );
-
-			$transient_obj->unlock_update();
-
+		public static function get_updates() {
+			return self::$updates;
 		}
 
 		/**
@@ -141,69 +101,39 @@ if ( ! class_exists( 'DFM_Transient_Hook' ) ) {
 				}
 			}
 
-			/**
-			 * Sample return formats from the callback
-			 *
-			 * - True/False: If you return false, it won't update anything, if you return true it will continue with the update process
-			 * - 20: Return an int of the object ID to update the transient value for a specific object when the object cache type is being used. If you have transients using modifiers on this object all modifiers will be updated
-			 * - 'blue': Return the string name of the transient modifier you would like to update. This only works for transients using the "transient" storage engine, since it needs the context of the object ID for object type caches
-			 * - [ 10, 20, 30 ]: Return an array of object ID's to update transients on those specific object ID's
-			 * - [
-			 *      10 => [ 'blue', 'yellow', 'green' ]   Update transients with the modifiers blue, yellow, and green in the object ID: 10
-			 *      20 => [ 'blue', 'green' ]             Update transients with the modifiers blue, and green in the object ID: 20
-			 *      30 => []                              Update all transients within the group on object ID: 30
-			 * ]
-			 */
-			if ( is_array( $modifiers ) && ! empty( $modifiers ) ) {
-				foreach ( $modifiers as $key => $modifier ) {
-					if ( is_array( $modifier ) && ! empty( $modifier ) ) {
-						foreach ( $modifier as $key_modifier ) {
-							$this->dispatch_update( $key_modifier, $key );
-						}
-					} else {
-						if ( empty( $modifier ) ) {
-							$modifier = $key;
-						}
-						$this->dispatch_update( $modifier );
+			// If we are running an async task, instantiate a new async handler.
+			if ( $this->async ) {
+
+				if ( ! empty( self::$updates[ $this->transient ] ) ) {
+
+					$existing_updates = self::$updates[ $this->transient ];
+
+					if ( ! is_array( $existing_updates ) ) {
+						$existing_updates = [ $existing_updates ];
 					}
+
+					if ( ! is_array( $modifiers ) ) {
+						$modifiers = [ $modifiers ];
+					}
+
+					self::$updates[ $this->transient ] = array_unique( array_merge( $existing_updates, $modifiers ) );
+
+				} else {
+					self::$updates[ $this->transient ] = $modifiers;
 				}
+
+				// Run the update in real time if we aren't using an async process
 			} else {
-				$this->dispatch_update( $modifiers );
-			}
 
-		}
-
-		/**
-		 * Retrieve data from the hook callback and process it for updating
-		 *
-		 * @param mixed|string|int|bool $modifier  The data passed back from the callback
-		 * @param null                  $object_id ID of the object an update needs to be performed for
-		 *
-		 * @access private
-		 */
-		private function dispatch_update( $modifier, $object_id = null ) {
-
-			if ( 'transient' !== $this->transient_obj->cache_type ) {
-
-				if ( empty( $object_id ) ) {
-					$object_id = absint( $modifier );
-					$translated_obj_id = true;
-				}
-
-				if ( empty( $modifier ) || isset( $translated_obj_id ) ) {
-					$modifier_map = DFM_Transients::get_meta_map( DFM_Transient_Utils::get_meta_type( $this->transient_obj->cache_type ), $object_id, $this->transient_obj->key );
-					if ( ! empty( $modifier_map ) && is_array( $modifier_map ) ) {
-						foreach ( $modifier_map as $modifier => $modifier_key ) {
-							$this->run_update( $modifier, $object_id );
-						}
-					} else {
-						$this->run_update( '', $object_id );
+				// If we have an array of modifiers, update each of them.
+				if ( is_array( $modifiers ) ) {
+					foreach ( $modifiers as $modifier ) {
+						DFM_Transient_Scheduler::run_update( $this->transient, $modifier, '' );
 					}
 				} else {
-					$this->run_update( $modifier, $object_id );
+					DFM_Transient_Scheduler::run_update( $this->transient, $modifiers, '' );
 				}
-			} else {
-				$this->run_update( $modifier );
+
 			}
 
 		}

@@ -21,7 +21,7 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 		 * @var string
 		 * @access private
 		 */
-		private $modifier;
+		private $modifiers;
 
 		/**
 		 * Lock key for matching the update locking lock.
@@ -34,58 +34,51 @@ if ( ! class_exists( 'DFM_Async_Handler' ) ) {
 		/**
 		 * DFM_Async_Handler constructor.
 		 *
-		 * @param string $transient Name of the transient
-		 * @param string $modifier  Unique modifier for the transient
-		 * @param int    $object_id ID of the object where the transient data is stored
-		 * @param string $lock_key  Key for matching the update locking
-		 *
-		 * @return void
+		 * @param string       $transient Name of the transient
+		 * @param string|array $modifiers Unique modifier for the transient
+		 * @param string       $lock_key  Key for matching the update locking
 		 */
-		function __construct( $transient, $modifier, $object_id = 0, $lock_key = '' ) {
+		function __construct( $transient, $modifiers, $lock_key = '' ) {
 
 			$this->transient_name = $transient;
-			$this->modifier       = $modifier;
-			$this->object_id      = $object_id;
+			$this->modifiers      = $modifiers;
 			$this->lock_key       = $lock_key;
 			// Spawn the event on shutdown so we are less likely to run into timeouts, or block other processes
-			add_action( 'shutdown', array( $this, 'spawn_event' ) );
+
+			if ( ! defined( 'DOING_CRON' ) && ! defined( 'REST_REQUEST' ) ) {
+				if ( 'shutdown' === current_action() ) {
+					$this->spawn_event();
+				} else {
+					add_action( 'shutdown', array( $this, 'spawn_event' ) );
+				}
+			}
 
 		}
 
 		/**
 		 * Sends off a request to process and update the transient data asynchronously
 		 *
-		 * @return array|void|WP_Error
+		 * @return array|WP_Error
 		 * @access public
 		 */
 		public function spawn_event() {
 
-			// Prevents infinite loops if we are debugging transients in the init hook, or another hook that would run
-			// when handling the async post data
-			$is_async_action = ( isset( $_POST['async_action'] ) ) ? true : false;
-
-			if ( true === $is_async_action ) {
-				return;
+			if ( ! defined( 'DFM_TRANSIENTS_SECRET' ) ) {
+				return new \WP_Error( 'no-secret', __( 'You need to define the DFM_TRANSIENTS_SECRET constant in order to use this feature', 'dfm-transients' ) );
 			}
-
-			$nonce = new DFM_Async_Nonce( $this->transient_name );
-			$nonce = $nonce->create();
 
 			$request_args = array(
 				'timeout'  => 0.01,
 				'blocking' => false, // don't wait for a response
-				'body'     => array(
-					'transient_name' => $this->transient_name,
-					'modifier'       => $this->modifier,
-					'object_id'      => $this->object_id,
-					'action'         => 'dfm_' . $this->transient_name,
-					'_nonce'         => $nonce,
-					'async_action'   => true,
+				'method'   => 'PUT',
+				'body'     => wp_json_encode( array(
+					'secret'         => DFM_TRANSIENTS_SECRET,
+					'modifiers'      => $this->modifiers,
 					'lock_key'       => $this->lock_key,
-				),
+				) ),
 			);
 
-			$url = admin_url( 'admin-post.php' );
+			$url = get_rest_url( null, DFM_Transient_Scheduler::API_NAMESPACE . '/' . DFM_Transient_Scheduler::ENDPOINT_RUN . '/' . $this->transient_name );
 			return wp_safe_remote_post( $url, $request_args );
 
 		}

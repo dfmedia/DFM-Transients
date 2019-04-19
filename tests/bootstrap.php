@@ -21,5 +21,9 @@ function _manually_load_plugin() {
 }
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
+if ( ! defined( 'DFM_TRANSIENTS_SECRET' ) ) {
+	define( 'DFM_TRANSIENTS_SECRET', 'pizzapizzapizza' );
+}
+
 // Start up the WP testing environment.
 require $_tests_dir . '/includes/bootstrap.php';
